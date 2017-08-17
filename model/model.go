@@ -2,16 +2,25 @@ package model
 
 import (
 	"chessServer/utility"
-	"debug/plan9obj"
 )
 
+var(
+	KingProbableStepList = [8]utility.Point{utility.Point{-1,-1},utility.Point{-1,0},utility.Point{-1,1},
+															 utility.Point{0, -1},utility.Point{0, 1},utility.Point{1,-1},
+															 utility.Point{1,0},utility.Point{1,1},}
+	KnightProbableStepList = [8]utility.Point{utility.Point{-2,-1},utility.Point{-1,-2},utility.Point{1,-2},
+											  utility.Point{2, -1},utility.Point{-2, 1},utility.Point{-1,2},
+											  utility.Point{1,2},utility.Point{2,1},}
+)
 // TODO add classes Straight figure with collisions and figure with collisions in place only
 //	interface for all figures, just checking if figure can go somewhere/attack a field
 type StepMaker interface{
 	CheckStepAvailable(point utility.Point)(bool)	//	check if figure can go to the following field
 	CheckAttackAvailable(point utility.Point)(bool)	//	check if figure can attack the following field
+
 	StepsAvailable()([]utility.Point)	//	list all available fields to go
 	AttacksAvailable()([]utility.Point)	//	list all available fields to attack
+
 	CheckForCollision(destination,obstacle utility.Point)(bool)	//	check if we can collide with other figure while doing step
 }
 
@@ -22,36 +31,12 @@ type Figure struct{	//	parent class for all figures(all figures inherits Figure 
 	Colour_ Colour
 }
 
-
-// list of child classes representing figures, classes named as figures in english so
-//I've added some russian cursive comments so i'll understand myself
-type King struct{
-	Figure
+func ConstructFigure(x,y int ,colour Colour)(Figure) {
+	return Figure{utility.Point{x,y},colour}
 }
 
-func (k King)StepsAvailable()(Buffer []utility.Point){
-	Buffer = make([]utility.Point, 8)
-	for i:=k.X-1;i <= k.X+1;i++{
-		for j:=k.Y-1;j <= k.Y+1;j++{
-			temp:=utility.Point{i,j}
-			if !temp.Equal(k.Point){
-				if temp.CheckFieldBoundaries(){
-					Buffer = append(Buffer, temp)
-				}
-			}
-		}
-	}
-	return Buffer
-}
-
-func (k King)AttacksAvailable()(Buffer []utility.Point){
-	Buffer = k.StepsAvailable()
-	return Buffer
-}
-
-func (k King)CheckStepAvailable(point utility.Point)(bool){
-	stepsAvailable:=k.StepsAvailable()
-	for _,element:=range stepsAvailable{
+func (f Figure)checkAvailable(available []utility.Point, point utility.Point)(bool){	//	utility function to check whereas given point is available for step
+	for _,element:=range available{
 		if element.Equal(point){
 			return true
 		}
@@ -59,103 +44,113 @@ func (k King)CheckStepAvailable(point utility.Point)(bool){
 	return false
 }
 
-func (k King)CheckAttackAvailable(point utility.Point)(bool){
-	return k.CheckStepAvailable(point)
+type LinearFigure struct{	//	bishops and rooks
+	Figure
+	Direction [2]utility.Vector
 }
 
-func (k King)CheckForCollision(destination, obstacle utility.Point)(bool){
+func (l LinearFigure)StepsAvailable()(Buffer []utility.Point){
+	Buffer = make([]utility.Point, 16)
+	for _,element:=range l.Direction{
+		i,j:=l.Point.Add(element.Point),l.Point.Substract(element.Point)
+		for i.CheckFieldBoundaries() && j.CheckFieldBoundaries(){
+			Buffer = append(Buffer,i)
+			Buffer = append(Buffer,i)
+		}
+	}
+	return Buffer
+}
+
+func (l LinearFigure)AttacksAvailable()(Buffer []utility.Point){
+	return l.StepsAvailable()
+}
+
+func (l LinearFigure)CheckStepsAvailable(point utility.Point)(bool){
+	return l.checkAvailable(l.StepsAvailable(),point)
+}
+
+func (l LinearFigure)CheckAttacksAvailable(point utility.Point)(bool){
+	return l.CheckStepsAvailable(point)
+}
+
+func (l LinearFigure)CheckForCollision(destination, obstacle utility.Point)(bool){
+	way:=utility.Line{l.Point,destination}	// only valid destinations are checked for collision
+	return way.Intersect(obstacle)						// so we can skip checking for validity
+}
+
+type NonLinearFigure struct{	//	Kings/Knights, figures, which can collide only if they rich collision place
+	Figure
+	ProbableSteps [8]utility.Point	//	both kings and knights can visit only 8 places
+}
+
+func (n NonLinearFigure)StepsAvailable()(Buffer []utility.Point){
+	Buffer = make([]utility.Point, 8)
+	for i,element:= range n.ProbableSteps{
+		if n.Point.Add(element).CheckFieldBoundaries(){
+			Buffer[i]=n.Point.Add(element)
+		}
+	}
+	return Buffer
+}
+
+func (n NonLinearFigure)AttacksAvailable()(Buffer []utility.Point){
+	return n.StepsAvailable()
+}
+
+func (n NonLinearFigure)CheckStepsAvailable(point utility.Point)(bool){
+	return n.checkAvailable(n.StepsAvailable(),point)
+}
+
+func (n NonLinearFigure)CheckAttacksAvailable(point utility.Point)(bool){
+	return n.CheckStepsAvailable(point)
+}
+
+func (n NonLinearFigure)CheckForCollision(destination, obstacle utility.Point)(bool){
 	return destination.Equal(obstacle)
 }
+
+// list of child classes representing figures, classes named as figures in english so
+//I've added some russian cursive comments so i'll understand myself
+type King struct{
+	NonLinearFigure
+}
+
+func ConstructKing(x,y int, colour Colour)(King){
+	return King{NonLinearFigure{ConstructFigure(x,y,colour),KingProbableStepList}}
+}
+
 type Queen struct{
 	Figure
 }
 
 type Bishop struct{
-	Figure	//	slon
+	LinearFigure	//	slon
 }
 
-func(b Bishop)StepsAvailable()(Buffer []utility.Point){
-	Buffer = make([]utility.Point, 16)
-	for i:=0;i<8;i++{
-		tmp1,tmp2:=utility.Point{b.X,i},utility.Point{i,b.Y}
-		if !tmp1.Equal(b.Point){
-			Buffer = append(Buffer,tmp1)
-		}
-		if !tmp2.Equal(b.Point){
-			Buffer = append(Buffer,tmp2)
-		}
-	}
-	return Buffer
-}
-
-func (b Bishop)AttacksAvailable()(Buffer []utility.Point){
-	return b.StepsAvailable()
-}
-
-func (b Bishop)CheckStepAvailable(point utility.Point)(bool){
-	for _,element:=range b.StepsAvailable(){
-		if b.Point.Equal(element){
-			return true
-		}
-	}
-	return false
-}
-
-func (b Bishop)CheckAttackAvailable(point utility.Point)(bool){
-	return b.CheckStepAvailable(point)
-}
-
-func (b Bishop)CheckForCollision(destination, obstacle utility.Point)(bool){
-	if b.CheckStepAvailable(destination){
-		way:=utility.Line{b.Point, destination}
-		return way.Intersect(obstacle)
-	}else{
-		return false
-	}
+func ConstructBishop(x,y int ,colour Colour)(Bishop){
+	direction:=[2]utility.Vector{utility.Vector{utility.Point{0,1}},utility.Vector{utility.Point{1,0}}}
+	return Bishop{LinearFigure{ConstructFigure(x,y,colour),direction}}
 }
 
 type Knight struct{
-	Figure	//	kon
+	NonLinearFigure	//	kon
 }
 
-func(k Knight)StepsAvailable()(Buffer []utility.Point){
-	storage:=[]utility.Point{Point{},Point{}}
-	Buffer = make([]utility.Point,8)
-	return Buffer
-}
-
-func (k Knight)AttacksAvailable()(Buffer []utility.Point){
-	return b.StepsAvailable()
-}
-
-func (k Knight)CheckStepAvailable(point utility.Point)(bool){
-	for _,element:=range b.StepsAvailable(){
-		if b.Point.Equal(element){
-			return true
-		}
-	}
-	return false
-}
-
-func (k Knight)CheckAttackAvailable(point utility.Point)(bool){
-	return b.CheckStepAvailable(point)
-}
-
-func (k Knight)CheckForCollision(destination, obstacle utility.Point)(bool){
-	if b.CheckStepAvailable(destination){
-		way:=utility.Line{b.Point, destination}
-		return way.Intersect(obstacle)
-	}else{
-		return false
-	}
+func ConstructKnight(x,y int ,colour Colour)(Knight){
+	return Knight{NonLinearFigure{ConstructFigure(x,y,colour),KnightProbableStepList}}
 }
 
 
 type Rook struct{
-	Figure	//	ladya
+	LinearFigure	//	ladya
 }
 
 
+
+func ConstructRook(x,y int ,colour Colour)(Rook){
+	direction:=[2]utility.Vector{utility.Vector{utility.Point{X:1,Y:1}},utility.Vector{utility.Point{X: 1, Y: -1}}}
+	return Rook{LinearFigure{ConstructFigure(x,y,colour), direction}}
+}
 
 type Colour uint8
 const (
@@ -168,6 +163,8 @@ type GameSession struct{
 	AuthToken string
 	Finished Colour
 }
+
+
 
 
 

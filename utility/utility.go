@@ -16,6 +16,18 @@ func (p Point)Equal(compared Point)bool{
 	return p.X == compared.X &&p.Y == compared.Y
 }
 
+func (p Point)Add(value Point)(Point){
+	return Point{value.X+p.X, value.Y+p.Y}
+}
+
+func (p Point)Substract(value Point)(Point){
+	return Point{p.X-value.X, p.Y-value.Y}
+}
+
+type Vector struct{
+	Point
+}
+
 type Line struct{
 	begin Point
 	end   Point
