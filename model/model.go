@@ -46,7 +46,7 @@ func (f Figure)checkAvailable(available []utility.Point, point utility.Point)(bo
 
 type LinearFigure struct{	//	bishops and rooks
 	Figure
-	Direction [2]utility.Vector
+	Direction []utility.Vector
 }
 
 func (l LinearFigure)StepsAvailable()(Buffer []utility.Point){
@@ -120,15 +120,25 @@ func ConstructKing(x,y int, colour Colour)(King){
 }
 
 type Queen struct{
-	Figure
+	LinearFigure
 }
 
+func ConstructQueen(x,y int, colour Colour){
+	direction:=make([]utility.Vector,2)
+	direction = append(direction, utility.Vector{utility.Point{0,1}})
+	direction = append(direction, utility.Vector{utility.Point{1,0}})
+	direction = append(direction, utility.Vector{utility.Point{1,1}})
+	direction = append(direction, utility.Vector{utility.Point{1,-1}})
+	return Queen{LinearFigure{ConstructFigure(x,y,colour),direction}}
+}
 type Bishop struct{
 	LinearFigure	//	slon
 }
 
 func ConstructBishop(x,y int ,colour Colour)(Bishop){
-	direction:=[2]utility.Vector{utility.Vector{utility.Point{0,1}},utility.Vector{utility.Point{1,0}}}
+	direction:=make([]utility.Vector,2)
+	direction = append(direction, utility.Vector{utility.Point{0,1}})
+	direction = append(direction, utility.Vector{utility.Point{1,0}})
 	return Bishop{LinearFigure{ConstructFigure(x,y,colour),direction}}
 }
 
@@ -145,11 +155,36 @@ type Rook struct{
 	LinearFigure	//	ladya
 }
 
-
-
 func ConstructRook(x,y int ,colour Colour)(Rook){
-	direction:=[2]utility.Vector{utility.Vector{utility.Point{X:1,Y:1}},utility.Vector{utility.Point{X: 1, Y: -1}}}
+	direction:=make([]utility.Vector,2)
+	direction = append(direction, utility.Vector{utility.Point{1,1}})
+	direction = append(direction, utility.Vector{utility.Point{1,-1}})
 	return Rook{LinearFigure{ConstructFigure(x,y,colour), direction}}
+}
+
+type Pawn struct{
+	Figure
+	didStep bool
+}
+
+func(p Pawn)CheckStepAvailable(point utility.Point)(bool){
+
+}
+
+func(p Pawn)CheckAttackAvailable(point utility.Point)(bool){
+	
+}
+
+func(p Pawn)StepsAvailable()([]utility.Point){
+
+}
+
+func (p Pawn) AttacksAvailable()([]utility.Point){
+
+}
+
+func (p Pawn)CheckForCollision(destination,obstacle utility.Point)(bool){
+
 }
 
 type Colour uint8
