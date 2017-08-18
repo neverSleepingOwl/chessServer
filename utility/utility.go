@@ -8,6 +8,10 @@ type Point struct{
 	Y int
 }
 
+func ConstructPoint(x,y int)(Point){
+	return Point{X: x, Y: y}
+}
+
 func (p Point) CheckFieldBoundaries() bool{
 	return p.X >=0 && p.X < 8 && p.Y >=0 && p.Y <8
 }
@@ -17,11 +21,11 @@ func (p Point)Equal(compared Point)bool{
 }
 
 func (p Point)Add(value Point)(Point){
-	return Point{value.X+p.X, value.Y+p.Y}
+	return Point{value.X +p.X, value.Y +p.Y}
 }
 
-func (p Point)Substract(value Point)(Point){
-	return Point{p.X-value.X, p.Y-value.Y}
+func (p Point) Subtract(value Point)(Point){
+	return Point{p.X -value.X, p.Y -value.Y}
 }
 
 type Vector struct{
@@ -29,17 +33,21 @@ type Vector struct{
 }
 
 type Line struct{
-	Begin Point
-	End   Point
+	begin Point
+	end   Point
+}
+
+func ConstructLine(begin,end Point)(Line){
+	return Line{begin: begin, end: end}
 }
 
 func (l Line)abs()float64{
-	p:=Point{l.End.X - l.Begin.X, l.End.Y - l.Begin.Y}
-	return math.Sqrt(float64(p.X*p.X+p.Y*p.Y))
+	p:=Point{l.end.X - l.begin.X, l.end.Y - l.begin.Y}
+	return math.Sqrt(float64(p.X*p.X +p.Y*p.Y))
 }
 
 func (l Line)tan()(float64, bool){
-	p:=Point{l.End.X - l.Begin.X, l.End.Y - l.Begin.Y}
+	p:=Point{l.end.X - l.begin.X, l.end.Y - l.begin.Y}
 	if p.X !=0{
 		return  float64(p.Y)/float64(p.X),true
 	}else{
@@ -48,10 +56,10 @@ func (l Line)tan()(float64, bool){
 }
 
 func (l Line) Intersect(point Point)bool{
-	if l.End.X == l.Begin.X{
-		if l.End.X == point.X{
-			vec:=Line{l.Begin, point}
-			if sameSign(l.End.Y - l.Begin.Y,point.Y-l.Begin.Y) && l.abs() >= vec.abs(){
+	if l.end.X == l.begin.X {
+		if l.end.X == point.X {
+			vec:=Line{l.begin, point}
+			if sameSign(l.end.Y- l.begin.Y,point.Y-l.begin.Y) && l.abs() >= vec.abs(){
 				return true
 			}else{
 				return false
@@ -60,8 +68,10 @@ func (l Line) Intersect(point Point)bool{
 			return false
 		}
 	}else{
-		vec:=Line{l.Begin, point}
-		return l.abs() > vec.abs() && l.tan() == vec.tan()
+		vec:=Line{l.begin, point}
+		wayTan,_:=l.tan()
+		wayToObstacleTan,_:=vec.tan()
+		return l.abs() > vec.abs() && wayTan == wayToObstacleTan
 	}
 }
 

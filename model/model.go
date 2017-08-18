@@ -2,15 +2,27 @@ package model
 
 import (
 	"chessServer/utility"
+	"fmt"
 )
 
+
 var(
-	KingProbableStepList = [8]utility.Point{utility.Point{-1,-1},utility.Point{-1,0},utility.Point{-1,1},
-															 utility.Point{0, -1},utility.Point{0, 1},utility.Point{1,-1},
-															 utility.Point{1,0},utility.Point{1,1},}
-	KnightProbableStepList = [8]utility.Point{utility.Point{-2,-1},utility.Point{-1,-2},utility.Point{1,-2},
-											  utility.Point{2, -1},utility.Point{-2, 1},utility.Point{-1,2},
-											  utility.Point{1,2},utility.Point{2,1},}
+	KingProbableStepList = [8]utility.Point{{-1,-1},{-1,0},{-1,1},
+											{0, -1},{0, 1},{1,-1},
+											{1,0},{1,1},}
+	KnightProbableStepList = [8]utility.Point{{-2,-1},{-1, -2},{1, -2},
+											  {2, -1},{-2, 1},{-1,2},
+											  {1, 2},{2, 1},}
+	PawnProbableShortStepList = [2]utility.Point{{0,1},	//	probable short steps for black pawns
+											   {0,-1},	//	probable short steps for white pawns
+											  }
+	PawnProbableLongStepList = [2]utility.Point{{0,2},	//	probable steps for black pawns
+												{0,-2},	//	probable steps for white pawns
+												}
+	PawnProbableAttackList = [2][2]utility.Point{
+		{{1,1}, {-1,1}},	//	probable steps for black pawns
+		{{1,-1}, {-1,-1}},	//	probable steps for white pawns
+	}
 )
 // TODO add classes Straight figure with collisions and figure with collisions in place only
 //	interface for all figures, just checking if figure can go somewhere/attack a field
@@ -24,15 +36,20 @@ type StepMaker interface{
 	CheckForCollision(destination,obstacle utility.Point)(bool)	//	check if we can collide with other figure while doing step
 }
 
-
+type array struct{
+	arr [32]utility.Point
+	size uint8
+}
 
 type Figure struct{	//	parent class for all figures(all figures inherits Figure and implement StepMaker)
 	utility.Point	//	figure coordinates
 	Colour_ Colour
+	pSteps array
+	pAttacks array
 }
 
 func ConstructFigure(x,y int ,colour Colour)(Figure) {
-	return Figure{Point:utility.Point{X:x,Y:y},Colour_:colour}
+	return Figure{Point: utility.ConstructPoint(x,y),Colour_: colour}
 }
 
 func (f Figure)checkAvailable(available []utility.Point, point utility.Point)(bool){	//	utility function to check whereas given point is available for step
@@ -52,10 +69,12 @@ type LinearFigure struct{	//	bishops and rooks
 func (l LinearFigure)StepsAvailable()(Buffer []utility.Point){
 	Buffer = make([]utility.Point, 16)
 	for _,element:=range l.Direction{
-		i,j:=l.Point.Add(element.Point),l.Point.Substract(element.Point)
+		i,j:=l.Point.Add(element.Point),l.Point.Subtract(element.Point)
 		for i.CheckFieldBoundaries() && j.CheckFieldBoundaries(){
 			Buffer = append(Buffer,i)
-			Buffer = append(Buffer,i)
+			Buffer = append(Buffer,j)
+			fmt.Println(i,j)
+			i,j = i.Add(element.Point), j.Subtract(element.Point)
 		}
 	}
 	return Buffer
@@ -74,8 +93,8 @@ func (l LinearFigure)CheckAttacksAvailable(point utility.Point)(bool){
 }
 
 func (l LinearFigure)CheckForCollision(destination, obstacle utility.Point)(bool){
-	way:=utility.Line{Begin:l.Point,End:destination}	// only valid destinations are checked for collision
-	return way.Intersect(obstacle)						// so we can skip checking for validity
+	way:=utility.ConstructLine(l.Point, destination) // only valid destinations are checked for collision
+	return way.Intersect(obstacle)                      // so we can skip checking for validity
 }
 
 type NonLinearFigure struct{	//	Kings/Knights, figures, which can collide only if they rich collision place
@@ -124,11 +143,11 @@ type Queen struct{
 }
 
 func ConstructQueen(x,y int, colour Colour)(Queen){
-	direction:=make([]utility.Vector,2)
-	direction = append(direction, utility.Vector{Point:utility.Point{X:0,Y:1}})
-	direction = append(direction, utility.Vector{Point:utility.Point{X:1,Y:0}})
-	direction = append(direction, utility.Vector{Point:utility.Point{X:1,Y:1}})
-	direction = append(direction, utility.Vector{Point:utility.Point{X:1,Y:-1}})
+	direction:=make([]utility.Vector,4)
+	direction[0] = utility.Vector{Point:utility.ConstructPoint(0,1)}
+	direction[1] = utility.Vector{Point:utility.ConstructPoint(1,0)}
+	direction[2] = utility.Vector{Point:utility.ConstructPoint(1,1)}
+	direction[3] = utility.Vector{Point:utility.ConstructPoint(1,-1)}
 	return Queen{LinearFigure:LinearFigure{Figure:ConstructFigure(x,y,colour),Direction:direction}}
 }
 
@@ -139,8 +158,8 @@ type Bishop struct{
 
 func ConstructBishop(x,y int ,colour Colour)(Bishop){
 	direction:=make([]utility.Vector,2)
-	direction = append(direction, utility.Vector{utility.Point{0,1}})
-	direction = append(direction, utility.Vector{utility.Point{1,0}})
+	direction[0] = utility.Vector{Point:utility.ConstructPoint(0,1)}
+	direction[1] = utility.Vector{Point:utility.ConstructPoint(1,0)}
 	return Bishop{LinearFigure{ConstructFigure(x,y,colour),direction}}
 }
 
@@ -159,8 +178,8 @@ type Rook struct{
 
 func ConstructRook(x,y int ,colour Colour)(Rook){
 	direction:=make([]utility.Vector,2)
-	direction = append(direction, utility.Vector{utility.Point{1,1}})
-	direction = append(direction, utility.Vector{utility.Point{1,-1}})
+	direction[0] = utility.Vector{Point:utility.ConstructPoint(1,1)}
+	direction[1] = utility.Vector{Point:utility.ConstructPoint(1,-1)}
 	return Rook{LinearFigure{ConstructFigure(x,y,colour), direction}}
 }
 
@@ -192,49 +211,28 @@ func(p Pawn)CheckAttackAvailable(point utility.Point)(bool){
 }
 
 func(p Pawn)StepsAvailable()(Buffer []utility.Point){
-	tmp := make([]utility.Point,2)
 	Buffer = make([]utility.Point,2)
-	switch p.Colour_ {
-	case BLACK:
-		tmp = append(tmp, utility.Point{X:p.X,Y:p.Y+1})
-		if !p.didStep{
-			tmp = append(tmp, utility.Point{X:p.X,Y:p.Y+2})
-		}
-	case WHITE:
-		tmp = append(tmp, utility.Point{X:p.X,Y:p.Y-1})
-		if !p.didStep{
-			tmp = append(tmp, utility.Point{X:p.X,Y:p.Y-2})
-		}
+	if element:=PawnProbableShortStepList[p.Colour_];element.Add(p.Point).CheckFieldBoundaries(){
+		Buffer = append(Buffer, element.Add(p.Point))
 	}
-	for _,element:=range tmp{
-		if element.CheckFieldBoundaries(){
-			Buffer = append(Buffer, element)
-		}
+	if element:=PawnProbableLongStepList[p.Colour_];!p.didStep && element.Add(p.Point).CheckFieldBoundaries(){
+		Buffer = append(Buffer, element.Add(p.Point))
 	}
 	return Buffer
 }
 
 func (p Pawn) AttacksAvailable()(Buffer []utility.Point){
-	tmp := make([]utility.Point,2)
 	Buffer = make([]utility.Point,2)
-	switch p.Colour_ {
-	case BLACK:
-		tmp = append(tmp, utility.Point{X:p.X+1,Y:p.Y+1})
-		tmp = append(tmp, utility.Point{X:p.X-1,Y:p.Y+1})
-	case WHITE:
-		tmp = append(tmp, utility.Point{X:p.X+1,Y:p.Y-1})
-		tmp = append(tmp, utility.Point{X:p.X-1,Y:p.Y-1})
-	}
-	for _,element:=range tmp{
-		if element.CheckFieldBoundaries(){
-			Buffer = append(Buffer, element)
+	for _,element:=range PawnProbableAttackList[p.Colour_]{
+		if element.Add(p.Point).CheckFieldBoundaries(){
+			Buffer = append(Buffer, element.Add(p.Point))
 		}
 	}
 	return Buffer
 }
 
 func (p Pawn)CheckForCollision(destination,obstacle utility.Point)(bool){
-	way:=utility.Line{Begin:p.Point,End:destination}
+	way:=utility.ConstructLine(p.Point, destination)
 	return way.Intersect(obstacle)
 }
 
