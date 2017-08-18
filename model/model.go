@@ -172,7 +172,7 @@ func(p Pawn)CheckStepAvailable(point utility.Point)(bool){
 }
 
 func(p Pawn)CheckAttackAvailable(point utility.Point)(bool){
-	
+
 }
 
 func(p Pawn)StepsAvailable()([]utility.Point){
