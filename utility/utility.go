@@ -29,17 +29,17 @@ type Vector struct{
 }
 
 type Line struct{
-	begin Point
-	end   Point
+	Begin Point
+	End   Point
 }
 
 func (l Line)abs()float64{
-	p:=Point{l.end.X - l.begin.X, l.end.Y - l.begin.Y}
+	p:=Point{l.End.X - l.Begin.X, l.End.Y - l.Begin.Y}
 	return math.Sqrt(float64(p.X*p.X+p.Y*p.Y))
 }
 
 func (l Line)tan()(float64, bool){
-	p:=Point{l.end.X - l.begin.X, l.end.Y - l.begin.Y}
+	p:=Point{l.End.X - l.Begin.X, l.End.Y - l.Begin.Y}
 	if p.X !=0{
 		return  float64(p.Y)/float64(p.X),true
 	}else{
@@ -48,10 +48,10 @@ func (l Line)tan()(float64, bool){
 }
 
 func (l Line) Intersect(point Point)bool{
-	if l.end.X == l.begin.X{
-		if l.end.X == point.X{
-			vec:=Line{l.begin,point}
-			if sameSign(l.end.Y - l.begin.Y,point.Y-l.begin.Y) && l.abs() > vec.abs(){
+	if l.End.X == l.Begin.X{
+		if l.End.X == point.X{
+			vec:=Line{l.Begin, point}
+			if sameSign(l.End.Y - l.Begin.Y,point.Y-l.Begin.Y) && l.abs() >= vec.abs(){
 				return true
 			}else{
 				return false
@@ -60,7 +60,7 @@ func (l Line) Intersect(point Point)bool{
 			return false
 		}
 	}else{
-		vec:=Line{l.begin,point}
+		vec:=Line{l.Begin, point}
 		return l.abs() > vec.abs() && l.tan() == vec.tan()
 	}
 }

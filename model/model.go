@@ -32,7 +32,7 @@ type Figure struct{	//	parent class for all figures(all figures inherits Figure 
 }
 
 func ConstructFigure(x,y int ,colour Colour)(Figure) {
-	return Figure{utility.Point{x,y},colour}
+	return Figure{Point:utility.Point{X:x,Y:y},Colour_:colour}
 }
 
 func (f Figure)checkAvailable(available []utility.Point, point utility.Point)(bool){	//	utility function to check whereas given point is available for step
@@ -74,7 +74,7 @@ func (l LinearFigure)CheckAttacksAvailable(point utility.Point)(bool){
 }
 
 func (l LinearFigure)CheckForCollision(destination, obstacle utility.Point)(bool){
-	way:=utility.Line{l.Point,destination}	// only valid destinations are checked for collision
+	way:=utility.Line{Begin:l.Point,End:destination}	// only valid destinations are checked for collision
 	return way.Intersect(obstacle)						// so we can skip checking for validity
 }
 
@@ -116,21 +116,23 @@ type King struct{
 }
 
 func ConstructKing(x,y int, colour Colour)(King){
-	return King{NonLinearFigure{ConstructFigure(x,y,colour),KingProbableStepList}}
+	return King{NonLinearFigure:NonLinearFigure{Figure:ConstructFigure(x,y,colour),ProbableSteps:KingProbableStepList}}
 }
 
 type Queen struct{
 	LinearFigure
 }
 
-func ConstructQueen(x,y int, colour Colour){
+func ConstructQueen(x,y int, colour Colour)(Queen){
 	direction:=make([]utility.Vector,2)
-	direction = append(direction, utility.Vector{utility.Point{0,1}})
-	direction = append(direction, utility.Vector{utility.Point{1,0}})
-	direction = append(direction, utility.Vector{utility.Point{1,1}})
-	direction = append(direction, utility.Vector{utility.Point{1,-1}})
-	return Queen{LinearFigure{ConstructFigure(x,y,colour),direction}}
+	direction = append(direction, utility.Vector{Point:utility.Point{X:0,Y:1}})
+	direction = append(direction, utility.Vector{Point:utility.Point{X:1,Y:0}})
+	direction = append(direction, utility.Vector{Point:utility.Point{X:1,Y:1}})
+	direction = append(direction, utility.Vector{Point:utility.Point{X:1,Y:-1}})
+	return Queen{LinearFigure:LinearFigure{Figure:ConstructFigure(x,y,colour),Direction:direction}}
 }
+
+
 type Bishop struct{
 	LinearFigure	//	slon
 }
@@ -167,24 +169,73 @@ type Pawn struct{
 	didStep bool
 }
 
-func(p Pawn)CheckStepAvailable(point utility.Point)(bool){
+func ConstructPawn(x,y int ,colour Colour)(Pawn){
+	return Pawn{ConstructFigure(x,y,colour),false}
+}
 
+func(p Pawn)CheckStepAvailable(point utility.Point)(bool){
+	for _,element := range p.StepsAvailable(){
+		if element.Equal(point){
+			return true
+		}
+	}
+	return false
 }
 
 func(p Pawn)CheckAttackAvailable(point utility.Point)(bool){
-	
+	for _,element := range p.AttacksAvailable(){
+		if element.Equal(point){
+			return true
+		}
+	}
+	return false
 }
 
-func(p Pawn)StepsAvailable()([]utility.Point){
-
+func(p Pawn)StepsAvailable()(Buffer []utility.Point){
+	tmp := make([]utility.Point,2)
+	Buffer = make([]utility.Point,2)
+	switch p.Colour_ {
+	case BLACK:
+		tmp = append(tmp, utility.Point{X:p.X,Y:p.Y+1})
+		if !p.didStep{
+			tmp = append(tmp, utility.Point{X:p.X,Y:p.Y+2})
+		}
+	case WHITE:
+		tmp = append(tmp, utility.Point{X:p.X,Y:p.Y-1})
+		if !p.didStep{
+			tmp = append(tmp, utility.Point{X:p.X,Y:p.Y-2})
+		}
+	}
+	for _,element:=range tmp{
+		if element.CheckFieldBoundaries(){
+			Buffer = append(Buffer, element)
+		}
+	}
+	return Buffer
 }
 
-func (p Pawn) AttacksAvailable()([]utility.Point){
-
+func (p Pawn) AttacksAvailable()(Buffer []utility.Point){
+	tmp := make([]utility.Point,2)
+	Buffer = make([]utility.Point,2)
+	switch p.Colour_ {
+	case BLACK:
+		tmp = append(tmp, utility.Point{X:p.X+1,Y:p.Y+1})
+		tmp = append(tmp, utility.Point{X:p.X-1,Y:p.Y+1})
+	case WHITE:
+		tmp = append(tmp, utility.Point{X:p.X+1,Y:p.Y-1})
+		tmp = append(tmp, utility.Point{X:p.X-1,Y:p.Y-1})
+	}
+	for _,element:=range tmp{
+		if element.CheckFieldBoundaries(){
+			Buffer = append(Buffer, element)
+		}
+	}
+	return Buffer
 }
 
 func (p Pawn)CheckForCollision(destination,obstacle utility.Point)(bool){
-
+	way:=utility.Line{Begin:p.Point,End:destination}
+	return way.Intersect(obstacle)
 }
 
 type Colour uint8
