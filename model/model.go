@@ -2,7 +2,6 @@ package model
 
 import (
 	"chessServer/utility"
-	"fmt"
 )
 
 
@@ -34,6 +33,12 @@ type StepMaker interface{
 	AttacksAvailable()([]utility.Point)	//	list all available fields to attack
 
 	CheckForCollision(destination,obstacle utility.Point)(bool)	//	check if we can collide with other figure while doing step
+
+	RetCoords()utility.Point
+
+	RetColour()Colour
+
+	isEnemy(maker StepMaker)bool
 }
 
 type array struct{
@@ -46,6 +51,14 @@ type Figure struct{	//	parent class for all figures(all figures inherits Figure 
 	Colour_ Colour
 	pSteps array
 	pAttacks array
+}
+
+func(f Figure)RetColour()Colour{
+	return f.Colour_
+}
+
+func (f Figure)isEnemy(maker StepMaker)bool{	//	true if two figures are enemies
+	return f.Colour_ != maker.RetColour()
 }
 
 func ConstructFigure(x,y int ,colour Colour)(Figure) {
@@ -61,20 +74,26 @@ func (f Figure)checkAvailable(available []utility.Point, point utility.Point)(bo
 	return false
 }
 
+func (f Figure)RetCoords()utility.Point{
+	return f.Point
+}
+
 type LinearFigure struct{	//	bishops and rooks
 	Figure
 	Direction []utility.Vector
 }
 
 func (l LinearFigure)StepsAvailable()(Buffer []utility.Point){
-	Buffer = make([]utility.Point, 16)
+	Buffer = make([]utility.Point,0,16)
 	for _,element:=range l.Direction{
 		i,j:=l.Point.Add(element.Point),l.Point.Subtract(element.Point)
-		for i.CheckFieldBoundaries() && j.CheckFieldBoundaries(){
+		for i.CheckFieldBoundaries(){
 			Buffer = append(Buffer,i)
+			i = i.Add(element.Point)
+		}
+		for j.CheckFieldBoundaries(){
 			Buffer = append(Buffer,j)
-			fmt.Println(i,j)
-			i,j = i.Add(element.Point), j.Subtract(element.Point)
+			j = j.Subtract(element.Point)
 		}
 	}
 	return Buffer
@@ -103,10 +122,10 @@ type NonLinearFigure struct{	//	Kings/Knights, figures, which can collide only i
 }
 
 func (n NonLinearFigure)StepsAvailable()(Buffer []utility.Point){
-	Buffer = make([]utility.Point, 8)
-	for i,element:= range n.ProbableSteps{
+	Buffer = make([]utility.Point,0,8)
+	for _,element:= range n.ProbableSteps{
 		if n.Point.Add(element).CheckFieldBoundaries(){
-			Buffer[i]=n.Point.Add(element)
+			Buffer=append(Buffer,n.Point.Add(element))
 		}
 	}
 	return Buffer
@@ -143,11 +162,11 @@ type Queen struct{
 }
 
 func ConstructQueen(x,y int, colour Colour)(Queen){
-	direction:=make([]utility.Vector,4)
-	direction[0] = utility.Vector{Point:utility.ConstructPoint(0,1)}
-	direction[1] = utility.Vector{Point:utility.ConstructPoint(1,0)}
-	direction[2] = utility.Vector{Point:utility.ConstructPoint(1,1)}
-	direction[3] = utility.Vector{Point:utility.ConstructPoint(1,-1)}
+	direction:=make([]utility.Vector,0,4)
+	direction = append(direction,utility.Vector{Point:utility.ConstructPoint(0,1)})
+	direction = append(direction,utility.Vector{Point:utility.ConstructPoint(1,0)})
+	direction = append(direction,utility.Vector{Point:utility.ConstructPoint(1,1)})
+	direction = append(direction,utility.Vector{Point:utility.ConstructPoint(1,-1)})
 	return Queen{LinearFigure:LinearFigure{Figure:ConstructFigure(x,y,colour),Direction:direction}}
 }
 
@@ -157,9 +176,9 @@ type Bishop struct{
 }
 
 func ConstructBishop(x,y int ,colour Colour)(Bishop){
-	direction:=make([]utility.Vector,2)
-	direction[0] = utility.Vector{Point:utility.ConstructPoint(0,1)}
-	direction[1] = utility.Vector{Point:utility.ConstructPoint(1,0)}
+	direction:=make([]utility.Vector,0,2)
+	direction = append(direction,utility.Vector{Point:utility.ConstructPoint(0,1)})
+	direction = append(direction,utility.Vector{Point:utility.ConstructPoint(1,0)})
 	return Bishop{LinearFigure{ConstructFigure(x,y,colour),direction}}
 }
 
@@ -177,9 +196,9 @@ type Rook struct{
 }
 
 func ConstructRook(x,y int ,colour Colour)(Rook){
-	direction:=make([]utility.Vector,2)
-	direction[0] = utility.Vector{Point:utility.ConstructPoint(1,1)}
-	direction[1] = utility.Vector{Point:utility.ConstructPoint(1,-1)}
+	direction:=make([]utility.Vector,0,2)
+	direction = append(direction,utility.Vector{Point:utility.ConstructPoint(1,1)})
+	direction = append(direction,utility.Vector{Point:utility.ConstructPoint(1,-1)})
 	return Rook{LinearFigure{ConstructFigure(x,y,colour), direction}}
 }
 
@@ -211,7 +230,7 @@ func(p Pawn)CheckAttackAvailable(point utility.Point)(bool){
 }
 
 func(p Pawn)StepsAvailable()(Buffer []utility.Point){
-	Buffer = make([]utility.Point,2)
+	Buffer = make([]utility.Point,0,2)
 	if element:=PawnProbableShortStepList[p.Colour_];element.Add(p.Point).CheckFieldBoundaries(){
 		Buffer = append(Buffer, element.Add(p.Point))
 	}
@@ -222,7 +241,7 @@ func(p Pawn)StepsAvailable()(Buffer []utility.Point){
 }
 
 func (p Pawn) AttacksAvailable()(Buffer []utility.Point){
-	Buffer = make([]utility.Point,2)
+	Buffer = make([]utility.Point,0,2)
 	for _,element:=range PawnProbableAttackList[p.Colour_]{
 		if element.Add(p.Point).CheckFieldBoundaries(){
 			Buffer = append(Buffer, element.Add(p.Point))
@@ -246,9 +265,32 @@ type GameSession struct{
 	Figures []StepMaker
 	AuthToken string
 	Finished Colour
+	StepDone bool
 }
 
+func (g GameSession)At(position utility.Point)(StepMaker,bool){
+	for _,element := range g.Figures{
+		if element.RetCoords().Equal(position){
+			return element,true
+		}
+	}
+	return nil,false
+}
 
+func (g GameSession)CanGo(destination utility.Point, fig  StepMaker)(bool){
+	return fig.CheckStepAvailable(destination)
+}
 
+func (g GameSession)CheckStepForCollisions(destination utility.Point, fig StepMaker)(collidedIndex  int, collide bool){
+	for i,element := range g.Figures{
+		if element.RetCoords().Equal(fig.RetCoords()){	//	ignore collision with self
+		}else if fig.CheckForCollision(destination,element.RetCoords()){
+			return i,true
+		}
+	}
+	return -1,false
+}
 
-
+func (g GameSession)CanAttack(destination utility.Point, fig  StepMaker)(bool){
+	return fig.CheckAttackAvailable(destination)
+}
