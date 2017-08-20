@@ -65,6 +65,7 @@ func (f Figure)checkAvailable(available []geometry.Point, point geometry.Point)(
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -84,7 +85,8 @@ type LinearFigure struct{
 }
 
 func (l LinearFigure)ListStepsAvailable()(Buffer []geometry.Point){
-	Buffer = make([]geometry.Point,0,16)
+	Buffer = make([]geometry.Point,0,16)	//	allocate memory for output
+
 	for _,element:=range l.Direction{	//	check all directions
 		i,j:=l.Point.Add(element.Point),l.Point.Subtract(element.Point)	//set iterators
 
@@ -92,6 +94,7 @@ func (l LinearFigure)ListStepsAvailable()(Buffer []geometry.Point){
 			Buffer = append(Buffer,i)	// add all cells lying on given direction
 			i = i.Add(element.Point)	//	add direction vector to iterator
 		}
+
 		for j.CheckFieldBoundaries(){	//	the same operation, but in opposite direction
 			Buffer = append(Buffer,j)
 			j = j.Subtract(element.Point)	//	subtract initial direction equals to adding opposite direction
@@ -125,21 +128,24 @@ func (l LinearFigure)CheckForCollision(destination, obstacle geometry.Point)(boo
 // they can step just forward, but attack only by diagonal, and also they can make long steps first time,
 // so collision case is enough complex to make other implementation for Pawns.
 type NonLinearFigure struct{	//	Kings/Knights, figures, which can collide only if they rich collision place
-	Figure
+	Figure	//	coordinates and colour, base class
 	ProbableSteps [8]geometry.Point	//	both kings and knights can visit only 8 places
 }
 
-//
+//To evaluate available steps we just add to all template coordinates coordinates of figure itself
+// and check if result fits field boundaries
 func (n NonLinearFigure)ListStepsAvailable()(Buffer []geometry.Point){
-	Buffer = make([]geometry.Point,0,8)
-	for _,element:= range n.ProbableSteps{
-		if n.Point.Add(element).CheckFieldBoundaries(){
-			Buffer=append(Buffer,n.Point.Add(element))
+	Buffer = make([]geometry.Point,0,8)	//	allocate memory for list of available coordinates
+
+	for _,element:= range n.ProbableSteps{	//	for each template step coordinate
+		if n.Point.Add(element).CheckFieldBoundaries(){	//	add coordinate of figure itself and check bounds
+			Buffer=append(Buffer,n.Point.Add(element))	//	add correct coordinate to list
 		}
 	}
 	return Buffer
 }
 
+// NonLinear Figure attack places, where they can make step
 func (n NonLinearFigure)AttacksAvailable()(Buffer []geometry.Point){
 	return n.ListStepsAvailable()
 }
@@ -158,6 +164,8 @@ func (n NonLinearFigure)CheckForCollision(destination, obstacle geometry.Point)(
 
 // list of child classes representing figures, classes named as figures in english so
 //I've added some russian cursive comments so i'll understand myself
+//All classes except Pawns inherit Linear or NonLinear figures, so, I'Ve Just needed to implement some constructors
+// All constructors return pointer to an object in order to assign result to interface
 type King struct{
 	NonLinearFigure
 }
@@ -171,11 +179,13 @@ type Queen struct{
 }
 
 func ConstructQueen(x,y int, colour Colour)(*Queen){
-	direction:=make([]geometry.Vector,0,4)
-	direction = append(direction,geometry.Vector{Point:geometry.ConstructPoint(0,1)})
-	direction = append(direction,geometry.Vector{Point:geometry.ConstructPoint(1,0)})
+	direction:=make([]geometry.Vector,0,4)	//	allocate vector of directions
+
+	direction = append(direction,geometry.Vector{Point:geometry.ConstructPoint(0,1)})	//	Queen behaves like Bishop and Rook same time
+	direction = append(direction,geometry.Vector{Point:geometry.ConstructPoint(1,0)})	// fill vector of directions
 	direction = append(direction,geometry.Vector{Point:geometry.ConstructPoint(1,1)})
 	direction = append(direction,geometry.Vector{Point:geometry.ConstructPoint(1,-1)})
+
 	return &Queen{LinearFigure:LinearFigure{Figure:ConstructFigure(x,y,colour),Direction:direction}}
 }
 
@@ -185,9 +195,11 @@ type Bishop struct{
 }
 
 func ConstructBishop(x,y int ,colour Colour)(*Bishop){
-	direction:=make([]geometry.Vector,0,2)
+	direction:=make([]geometry.Vector,0,2)	//	allocate vector of directions
+
 	direction = append(direction,geometry.Vector{Point:geometry.ConstructPoint(0,1)})
-	direction = append(direction,geometry.Vector{Point:geometry.ConstructPoint(1,0)})
+	direction = append(direction,geometry.Vector{Point:geometry.ConstructPoint(1,0)})	// fill vector of directions
+
 	return &Bishop{LinearFigure{ConstructFigure(x,y,colour),direction}}
 }
 
@@ -211,17 +223,22 @@ func ConstructRook(x,y int ,colour Colour)(*Rook){
 	return &Rook{LinearFigure{ConstructFigure(x,y,colour), direction}}
 }
 
+
+//Pawn differs from both Linear and Nonlinear figures
+
 type Pawn struct{
 	Figure
 	didStep bool
 }
 
-func ConstructPawn(x,y int ,colour Colour)(*Pawn){
+
+func ConstructPawn(x,y int ,colour Colour)(*Pawn){	// constructor
 	return &Pawn{ConstructFigure(x,y,colour),false}
 }
 
+//check if pawn can step into the following cell
 func(p Pawn)CheckStepAvailable(point geometry.Point)(bool){
-	for _,element := range p.ListStepsAvailable(){
+	for _,element := range p.ListStepsAvailable(){	//	just iterate through all available positions
 		if element.Equal(point){
 			return true
 		}
@@ -229,7 +246,7 @@ func(p Pawn)CheckStepAvailable(point geometry.Point)(bool){
 	return false
 }
 
-func(p Pawn)CheckAttackAvailable(point geometry.Point)(bool){
+func(p Pawn)CheckAttackAvailable(point geometry.Point)(bool){	//	the same for attacks
 	for _,element := range p.AttacksAvailable(){
 		if element.Equal(point){
 			return true
@@ -270,11 +287,17 @@ const (
 	WHITE
 )
 
+//Class, representing a single game session
+//Does the following actions:
+//load from database, then performs step if player has already picked a figure
+//else if player picks figure returns success or failure if there is no figure on given coordinate
 type GameSession struct{
 	Figures []StepMaker
-	AuthToken string
-	PlayingNow Colour
-	StepDone bool
+	AuthToken string	//actually it's a number of session
+	Password string		// password to authenticate
+	PlayingNow Colour	// which players turn
+	StepDone bool		// is someone have finished step, or just picked a figure
+	chosenFigure StepMaker	//	if someone has picked figure
 }
 
 func InitFromString(s string)(gs GameSession,ok bool){
@@ -290,7 +313,7 @@ func InitFromString(s string)(gs GameSession,ok bool){
 }
 
 
-//function, checking if there is
+//function, checking if there is a figure in given position
 func (g GameSession)At(position geometry.Point)(StepMaker,bool){
 	for _,element := range g.Figures{
 		if element.RetCoords().Equal(position) && g.PlayingNow == element.RetColour(){
@@ -304,6 +327,8 @@ func (g GameSession)CanGo(destination geometry.Point, fig  StepMaker)(bool){
 	return fig.CheckStepAvailable(destination)
 }
 
+
+// Check if figure collides with other figure while making step
 func (g GameSession)CheckStepForCollisions(destination geometry.Point, fig StepMaker)(collidedIndex  int, collide bool){
 	for i,element := range g.Figures{
 		if element.RetCoords().Equal(fig.RetCoords()){	//	ignore collision with self
@@ -317,3 +342,4 @@ func (g GameSession)CheckStepForCollisions(destination geometry.Point, fig StepM
 func (g GameSession)CanAttack(destination geometry.Point, fig  StepMaker)(bool){
 	return fig.CheckAttackAvailable(destination)
 }
+
