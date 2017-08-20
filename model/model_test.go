@@ -3,17 +3,17 @@ package model
 import (
 	"testing"
 	"fmt"
-	"chessServer/utility"
+	"chessServer/utility/geometry"
 )
 
 
 
-func Render(p []utility.Point, fig utility.Point)(bool){
+func Render(p []geometry.Point, fig geometry.Point)(bool){
 	emptyField:=true
 	for i:=0;i < 8;i++{
 		for j:=0;j<8;j++{
 			emptyField = true
-			comp := utility.ConstructPoint(i,j)
+			comp := geometry.ConstructPoint(i,j)
 			for _,element:=range p{
 				if !element.CheckFieldBoundaries(){
 					return false
@@ -40,7 +40,7 @@ func Render(p []utility.Point, fig utility.Point)(bool){
 	return true
 }
 
-func Check(p []utility.Point, fig utility.Point)(bool){
+func Check(p []geometry.Point, fig geometry.Point)(bool){
 	for _,element:=range p{
 		if element.Equal(fig){
 			return false
