@@ -3,7 +3,6 @@ package server
 import(
 	"fmt"
 	"net"
-	"os"
 )
 //TODO add DDOS protection
 
@@ -18,6 +17,7 @@ type PostCard struct{	//	PostCard struct is analogy of real postcard,
 	message string		// to deal with multiple receivers we need address of receiver(connection)
 	address net.Conn	//	and message to send
 }
+
 type TcpServer struct{//TODO add slice of connections
 	Balancer GameBalancer
 	Input chan PostCard	//	chanel for incoming data
@@ -55,6 +55,9 @@ func (t * TcpServer)waitForConnection(){
 	}
 }
 
+func (t * TcpServer)handleReceive{
+
+}
 func (t * TcpServer)handleRequests{
 	go func{
 		for{

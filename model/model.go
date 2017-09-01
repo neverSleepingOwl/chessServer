@@ -39,6 +39,8 @@ type StepMaker interface{
 
 	RetColour()Colour
 
+	SetCoords(p geometry.Point)
+
 	isEnemy(maker StepMaker)bool	//	check whereas other figure can make step or not
 }
 
@@ -71,6 +73,10 @@ func (f Figure)checkAvailable(available []geometry.Point, point geometry.Point)(
 
 func (f Figure)RetCoords()geometry.Point{	//	return figure's coordinates
 	return f.Point
+}
+
+func (f *Figure)SetCoords(p geometry.Point){
+	f.Point = p
 }
 
 
@@ -298,6 +304,7 @@ type GameSession struct{
 	PlayingNow Colour	// which players turn
 	StepDone bool		// is someone have finished step, or just picked a figure
 	chosenFigure StepMaker	//	if someone has picked figure
+	higlightedFigs []geometry.Point	//	when you pick a figure you should know
 }
 
 func InitFromString(s string)(gs GameSession,ok bool){
@@ -323,12 +330,9 @@ func (g GameSession)At(position geometry.Point)(StepMaker,bool){
 	return nil,false
 }
 
-func (g GameSession)CanGo(destination geometry.Point, fig  StepMaker)(bool){
-	return fig.CheckStepAvailable(destination)
-}
-
 
 // Check if figure collides with other figure while making step
+//return index of collided figure if collision happens
 func (g GameSession)CheckStepForCollisions(destination geometry.Point, fig StepMaker)(collidedIndex  int, collide bool){
 	for i,element := range g.Figures{
 		if element.RetCoords().Equal(fig.RetCoords()){	//	ignore collision with self
@@ -339,7 +343,102 @@ func (g GameSession)CheckStepForCollisions(destination geometry.Point, fig StepM
 	return -1,false
 }
 
-func (g GameSession)CanAttack(destination geometry.Point, fig  StepMaker)(bool){
-	return fig.CheckAttackAvailable(destination)
+
+// Recognises, whereas we can perform the attack/step to a given position
+// performs standart step/attack action with collision check, removes attacked figure
+// in case of attack, but saves it to a temporary variable
+// if action doesn't case check to attacking side, then return true and index of attacked figure
+// if no figures has been attacked returns negative index
+// returns result of attack (true if success) and index of attacked figure
+//WARNING, can't attack king
+//TODO add castling
+func (g * GameSession)CanAct(destination geometry.Point, fig StepMaker)(bool, int){
+	var (
+		temporaryDeletedFig StepMaker
+		prevCoords geometry.Point
+		deleted bool = false	//	flag to measure if we eated ( deleted figure from main array
+	)
+	//find out if we can step to a given position
+	step:= fig.CheckStepAvailable(destination)
+	//find out if we collide with an obstacle while performing step
+	collision,yes:=g.CheckStepForCollisions(destination,fig)
+	//we can attack if our destination has the same coordinates
+	//as the figure we collide, we can attack to a given destination and
+	//figure, placed at destination has different colour
+	attackAble:=fig.CheckAttackAvailable(destination) && yes &&
+			g.Figures[collision].isEnemy(fig) && g.Figures[collision].RetCoords().Equal(destination)
+	switch t:=g.Figures[collision].(type) {
+	//Can't attack king
+	case King:
+		attackAble = false
+	default:	//	to prevent compile error, we don't need t variable
+
+	}
+
+	switch{
+	case attackAble:
+		temporaryDeletedFig = g.Figures[collision] // perform attack virtually
+		g.Figures = append(g.Figures[:collision], g.Figures[collision+1:]...)	//	delete element from main array
+		prevCoords = fig.RetCoords()	//	remember previous coordinates
+		deleted = true
+		fig.SetCoords(destination)
+	case step && !yes:
+		prevCoords = fig.RetCoords()
+		fig.SetCoords(destination)//perform step virtually
+	default:
+		return false,-1
+	}
+
+	//If check occurs abandon
+	if g.CheckForCheck(){
+		fig.SetCoords(prevCoords)	//	undo step
+		if deleted{
+			g.Figures = append(g.Figures,temporaryDeletedFig)
+		}
+		return false,-1
+	}else{
+		fig.SetCoords(prevCoords)
+		ret:=-1
+		if deleted{
+			g.Figures = append(g.Figures,temporaryDeletedFig)
+			ret = collision
+		}
+		return true,ret
+	}
 }
+
+//Simple check if king is under attack or not
+func (g GameSession)CheckForCheck()bool{
+	var (
+		flag bool = false
+		king King
+	)
+	for _,element:= range g.Figures{
+		switch t := element.(type) {
+		case King:
+			if t.Colour_ == g.PlayingNow{
+				king = t
+				flag = true
+				break
+			}
+		}
+	}
+	if flag{
+		for _,element:=range g.Figures{	//	search if any figure attacks king
+			if element.CheckAttackAvailable(king.Point){
+				if _,collides:=g.CheckStepForCollisions(king.Point, element);!collides{
+					return true	//	if king is under attack
+				}
+			}
+		}
+		return false
+	}else{
+		return false//this can't happen, TODO generate exception or sth
+	}
+}
+
+func (g GameSession)Act(clicked geometry.Point){
+
+}
+
 
