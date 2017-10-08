@@ -1,17 +1,39 @@
 package server
 
 import(
-	"fmt"
-	"net"
 	"github.com/gorilla/websocket"
 	"chessServer/model"
 	"encoding/json"
 	"chessServer/utility/geometry"
+	"runtime"
 )
 
 
 type GameServer struct{
 	Rooms []*GameRoom
+	GameBalancer
+}
+
+func NewServer()*GameServer{
+	return &GameServer{Rooms:make([]*GameRoom,0,100),
+		GameBalancer:GameBalancer{Incoming:make(chan * websocket.Conn, 1000),
+			out1:make(chan * websocket.Conn, 500), out2:make(chan * websocket.Conn, 500),counter:0}}
+}
+
+func (g * GameServer)SchedGames(){
+	go g.GameBalancer.splitToPairs()
+	for{
+		if runtime.NumGoroutine() < 1000{
+			print("scheduling available")
+			first,second := <-g.out1, <- g.out2
+			print("received both messages")
+			if first != nil && second != nil{
+				room := New(first,second, len(g.Rooms),g)
+				g.Rooms = append(g.Rooms, room)
+				room.run()
+			}
+		}
+	}
 }
 
 type GameRoom struct{
@@ -28,7 +50,7 @@ type message struct{
 	msg []byte
 }
 
-func New(first, second * websocket.Conn,index int) * GameRoom {
+func New(first, second * websocket.Conn,index int, server * GameServer) * GameRoom {
 	g :=  &GameRoom{}
 	g.session = model.New()
 	g.Conns = make(map[*websocket.Conn]int)
@@ -37,7 +59,8 @@ func New(first, second * websocket.Conn,index int) * GameRoom {
 	g.msg = make(chan message)
 	g.leave = make(chan *websocket.Conn)
 	g.index = index
-	go g.SendState(g.session.InitialToJsonRepr())
+	g.server = server
+	g.SendState(g.session.InitialToJsonRepr())
 	return g
 }
 
@@ -45,6 +68,7 @@ func(g * GameRoom) listen(conn * websocket.Conn){
 	for{
 		_, data, err := conn.ReadMessage()
 		if err != nil{
+			print("Error, server.go line 69")
 			break
 		}
 		g.msg <- message{conn, data}
@@ -63,6 +87,7 @@ func (g * GameRoom)SendState(msg model.GameSessionJsonRepr){
 		msgToSend,_:=json.Marshal(&tmp_msg)
 		err := key.WriteMessage(websocket.TextMessage,msgToSend)
 		if err != nil{
+			print("error server.go line:88")
 			g.leave <- key
 			key.Close()
 		}
@@ -82,11 +107,14 @@ func (g * GameRoom)run(){
 					if err == nil {
 						output := g.session.Act(clicked)
 						g.SendState(output)
+					}else{
+						print("Error, server.go line:109")
 					}
 				}
 			case left := <- g.leave:	//	if player leaves
 				g.SendState(model.GameSessionJsonRepr{GameOver: 1 + (^g.Conns[left])})	//over player wins
 				for key := range g.Conns{	//	close all connections
+					print("close connection")
 					key.Close()
 				}
 				g.server.Rooms = append(g.server.Rooms[:g.index], g.server.Rooms[g.index+1:]...)	//	remove session and game room
@@ -96,7 +124,31 @@ func (g * GameRoom)run(){
 
 
 
+type GameBalancer struct{
+	Incoming chan *websocket.Conn
+	out1 chan * websocket.Conn
+	out2 chan * websocket.Conn
+	counter uint64
+}
 
+func (g * GameBalancer)splitToPairs(){
+	for{
+		select {
+		case conn := <- g.Incoming:
+			if g.counter % 2 == 0{
+				g.out1 <- conn
+			}else{
+				g.out2 <- conn
+			}
+
+			if g.counter + 1 < g.counter{
+				g.counter = 0
+			}else{
+				g.counter += 1
+			}
+		}
+	}
+}
 
 
 

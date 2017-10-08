@@ -71,8 +71,9 @@ type GameSessionJsonRepr struct{
 	Figs []FigJsonRepr `json:"figs"`
 	GameOver int 		`json:"game_over"` // 0 for normal game, 1 for black, 2 for white, 3 for draw
 	ProbSteps []geometry.Point `json:"list_steps"`
-	Player int `json:"player"`
+	Player int `json:"player"`	//	player, for clients to know what colour does he has << is that a fucking psycho pass reference??
 }
+
 
 
 func (g GameSession)ToJsonRepr()[]FigJsonRepr{
@@ -81,17 +82,17 @@ func (g GameSession)ToJsonRepr()[]FigJsonRepr{
 		p := element.RetCoords()
 		figType := ""
 		switch element.(type) {
-		case King:
+		case *King:
 			figType = "king"
-		case Queen:
+		case *Queen:
 			figType = "queen"
-		case Rook:
+		case *Rook:
 			figType = "rook"
-		case Knight:
+		case *Knight:
 			figType = "knight"
-		case Pawn:
+		case *Pawn:
 			figType = "pawn"
-		case Bishop:
+		case *Bishop:
 			figType = "bishop"
 		}
 		tmp = append(tmp, FigJsonRepr{figType, p.X,p.Y, int(element.RetColour())})
@@ -180,7 +181,7 @@ func (g * GameSession)CanAct(destination geometry.Point, fig StepMaker)(bool, in
 			g.Figures[collision].isEnemy(fig) && g.Figures[collision].RetCoords().Equal(destination)
 	switch g.Figures[collision].(type) {	//	TODO Probably causes error
 	//Can't attack king
-	case King:
+	case *King:
 		attackAble = false
 	default:	//	to prevent compile error, we don't need t variable
 	}
@@ -221,12 +222,12 @@ func(g * GameSession)CheckGameOver()(bool){
 	for _,fig := range g.Figures{
 		if fig.RetColour() == g.PlayingNow{
 			for _,step := range fig.AttacksAvailable(){
-				if g.CanAct(step,fig){
+				if ok,_ := g.CanAct(step,fig);ok{
 					return false
 				}
 			}
 			for _,step := range fig.ListStepsAvailable(){
-				if g.CanAct(step,fig){
+				if ok,_ := g.CanAct(step,fig);ok{
 					return false
 				}
 			}
@@ -239,11 +240,11 @@ func(g * GameSession)CheckGameOver()(bool){
 func (g GameSession)CheckForCheck()bool{
 	var (
 		flag bool = false
-		king King
+		king *King
 	)
 	for _,element:= range g.Figures{
 		switch t := element.(type) {
-		case King:
+		case *King:
 			if t.Colour_ == g.PlayingNow{
 				king = t
 				flag = true

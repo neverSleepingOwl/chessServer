@@ -1,46 +1,7 @@
 <p>Before canvas.</p>
 <canvas width="400" height="400"></canvas>
 <p>After canvas.</p>
-<script>
-  var canvas = document.querySelector("canvas");
-  var context = canvas.getContext("2d");
-  var socket = new WebSocket("ws://javascript.ru/ws");
-  socket.onopen = function() {
-  alert("Соединение установлено.");
-};
+<script type="text/javascript" src="client.js">
 
-socket.onclose = function(event) {
-  if (event.wasClean) {
-    alert('Соединение закрыто чисто');
-  } else {
-    alert('Обрыв соединения'); // например, "убит" процесс сервера
-  }
-  alert('Код: ' + event.code + ' причина: ' + event.reason);
-};
-
-socket.onmessage = function(event) {
-  alert("Получены данные " + event.data);
-};
-
-socket.onerror = function(error) {
-  alert("Ошибка " + error.message);
-};
-  repaint("red");
-  var x = 0
-      y = 0
-  canvas.addEventListener('mouseup', function (e) {
-    x = e.pageX - e.target.offsetLeft,
-    y = e.pageY - e.target.offsetTop;
-    if(x >= 200){
-    	repaint("blue");
-    }
-
-  })
-
-  function repaint(b){
-  	context.clearRect(0, 0, canvas.width, canvas.height);	
-  	context.fillStyle = b;
-  	context.fillRect(0, 0, 400, 400);
-  }
 </script>
 
