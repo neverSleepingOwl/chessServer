@@ -3,100 +3,97 @@ package server
 import(
 	"fmt"
 	"net"
-)
-//TODO add DDOS protection
-
-const(
-	maxRequests int=1000000
-	CONN_HOST = "localhost"
-	CONN_PORT = "3333"
-	CONN_TYPE = "tcp"
+	"github.com/gorilla/websocket"
+	"chessServer/model"
+	"encoding/json"
+	"chessServer/utility/geometry"
 )
 
-type PostCard struct{	//	PostCard struct is analogy of real postcard,
-	message string		// to deal with multiple receivers we need address of receiver(connection)
-	address net.Conn	//	and message to send
+
+type GameServer struct{
+	Rooms []*GameRoom
 }
 
-type TcpServer struct{//TODO add slice of connections
-	Balancer GameBalancer
-	Input chan PostCard	//	chanel for incoming data
-	Output chan PostCard	//	chanel for sent data
+type GameRoom struct{
+	Conns map[ * websocket.Conn]int
+	leave chan * websocket.Conn
+	msg chan message
+	session model.GameSession
+	index int
+	server * GameServer
 }
 
-func ConstructTcpServer()TcpServer{
-	return TcpServer{ConstructGameBalancer(),make(chan PostCard,maxRequests),make(chan PostCard, maxRequests)}
+type message struct{
+	from * websocket.Conn
+	msg []byte
 }
 
-func (t * TcpServer)waitForConnection(){
-	l,err:=net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
-	if err != nil{
-		fmt.Println("Error while listening to socket", err.Error())
-	}
-	defer l.Close()
+func New(first, second * websocket.Conn,index int) * GameRoom {
+	g :=  &GameRoom{}
+	g.session = model.New()
+	g.Conns = make(map[*websocket.Conn]int)
+	g.Conns[first] = 1
+	g.Conns[second] = 0
+	g.msg = make(chan message)
+	g.leave = make(chan *websocket.Conn)
+	g.index = index
+	go g.SendState(g.session.InitialToJsonRepr())
+	return g
+}
+
+func(g * GameRoom) listen(conn * websocket.Conn){
 	for{
-		connection,err:=l.Accept()
+		_, data, err := conn.ReadMessage()
 		if err != nil{
-			fmt.Print("Error while accepting connection", err.Error())
-		}else{
-			go func{
-				buffer:=make([]byte,1024)
-				_,err := connection.Read(buffer)
+			break
+		}
+		g.msg <- message{conn, data}
+	}
+	g.leave <- conn
+	conn.Close()
+}
 
-				if err != nil{
-					fmt.Println("Error while receiving data:",err.Error())
-				}else{
-					t.Input<-PostCard{string(buffer),connection}
+func (g * GameRoom)SendState(msg model.GameSessionJsonRepr){
+	for key,value := range g.Conns{
+		tmp_msg := msg
+		tmp_msg.Player = value
+		if value != int(g.session.PlayingNow){
+			tmp_msg.ProbSteps = []geometry.Point{}
+		}
+		msgToSend,_:=json.Marshal(&tmp_msg)
+		err := key.WriteMessage(websocket.TextMessage,msgToSend)
+		if err != nil{
+			g.leave <- key
+			key.Close()
+		}
+	}
+}
+
+func (g * GameRoom)run(){
+	for key := range g.Conns{	//	start listen to websocket connections
+		go g.listen(key)
+	}
+	for{
+		select{
+			case msg := <- g.msg:
+				if g.Conns[msg.from] == int(g.session.PlayingNow){
+					clicked := geometry.Point{}
+					err := json.Unmarshal(msg.msg,&clicked)
+					if err == nil {
+						output := g.session.Act(clicked)
+						g.SendState(output)
+					}
 				}
-
-			}()
+			case left := <- g.leave:	//	if player leaves
+				g.SendState(model.GameSessionJsonRepr{GameOver: 1 + (^g.Conns[left])})	//over player wins
+				for key := range g.Conns{	//	close all connections
+					key.Close()
+				}
+				g.server.Rooms = append(g.server.Rooms[:g.index], g.server.Rooms[g.index+1:]...)	//	remove session and game room
 		}
-
 	}
 }
 
-func (t * TcpServer)handleReceive{
-
-}
-func (t * TcpServer)handleRequests{
-	go func{
-		for{
-			received:=<-t.Input
-			if received.message == "wannaplay" || received.message == "wannaplay\n"{
-				t.Balancer.BalanceRequestsEnqueue(received.address)
-			}
-		}
-	}()
-}
-
-
-type GameBalancer struct{	//	class which builds pairs of players from incoming new game requests
-	putToFirst bool		//	put incoming client in first or second queue? this condition need to divide
-	//	incoming queue into two queues with close amount of clients
-	FirstQueue chan net.Conn	//	queues themselves are implemented as buffered channels
-	SecondQueue chan net.Conn
-	SessionCounter uint64	//	session counter to create sessions with unique keys in DataBase
-}
-
-func ConstructGameBalancer()GameBalancer{	//	constructor
-	return GameBalancer{true,make(chan net.Conn, maxRequests/2), make(chan net.Conn, maxRequests/2),0}
-}
-
-func (g * GameBalancer) BalanceRequestsEnqueue(client net.Conn){	//	split incoming requests in two queues
-	if g.putToFirst{
-		g.FirstQueue<-client
-	}else{
-		g.SecondQueue<-client
-	}
-	g.putToFirst=!g.putToFirst
-}
-
-func (g * GameBalancer)BalanceRequestsDeque(){
-	first:=<-g.FirstQueue
-	second:=<-g.SecondQueue
-	//TODO add game creation
-	//TODO add interaction with DB
-}
 
 
 

@@ -4,8 +4,8 @@ import "math"
 
 //package containing utility functions
 type Point struct{
-	X int
-	Y int
+	X int	`json:"x"`
+	Y int	`json:"y"`
 }
 
 func ConstructPoint(x,y int)(Point){

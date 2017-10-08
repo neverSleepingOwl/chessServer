@@ -2,7 +2,6 @@ package model
 
 import (
 	"chessServer/utility/geometry"
-	"chessServer/parser"
 )
 
 
@@ -44,9 +43,7 @@ type StepMaker interface{
 	isEnemy(maker StepMaker)bool	//	check whereas other figure can make step or not
 }
 
-
-
-type Colour uint8
+type Colour int
 const (
 	BLACK = iota
 	WHITE
@@ -58,27 +55,82 @@ const (
 //else if player picks figure returns success or failure if there is no figure on given coordinate
 type GameSession struct{
 	Figures []StepMaker
-	AuthToken string	//actually it's a number of session
-	Password string		// password to authenticate
 	PlayingNow Colour	// which players turn
 	StepDone bool		// is someone have finished step, or just picked a figure
 	chosenFigure StepMaker	//	if someone has picked figure
-	higlightedFigs []geometry.Point	//	when you pick a figure you should know
 }
 
-func InitFromString(s string)(gs GameSession,ok bool){
-	figures, token, playingNow, stepDone,ok := parser.GenerateGameSessionData(s)
-	if !ok{
-		return gs,false
+type FigJsonRepr struct{
+	Name string `json:"name"`
+	X   int `json:"x"`
+	Y   int `json:"y"`
+	Col int `json:"colour"`
+}
+
+type GameSessionJsonRepr struct{
+	Figs []FigJsonRepr `json:"figs"`
+	GameOver int 		`json:"game_over"` // 0 for normal game, 1 for black, 2 for white, 3 for draw
+	ProbSteps []geometry.Point `json:"list_steps"`
+	Player int `json:"player"`
+}
+
+
+func (g GameSession)ToJsonRepr()[]FigJsonRepr{
+	tmp := make([]FigJsonRepr,0,32)
+	for _,element := range g.Figures{
+		p := element.RetCoords()
+		figType := ""
+		switch element.(type) {
+		case King:
+			figType = "king"
+		case Queen:
+			figType = "queen"
+		case Rook:
+			figType = "rook"
+		case Knight:
+			figType = "knight"
+		case Pawn:
+			figType = "pawn"
+		case Bishop:
+			figType = "bishop"
+		}
+		tmp = append(tmp, FigJsonRepr{figType, p.X,p.Y, int(element.RetColour())})
 	}
-	gs.Figures = figures
-	gs.AuthToken = token
-	gs.PlayingNow = playingNow
-	gs.StepDone = stepDone
-	return gs, true
+	return tmp
 }
 
+func New()(GameSession){
+	g := GameSession{PlayingNow:WHITE,chosenFigure:nil,Figures:make([]StepMaker,0,32)}
 
+	g.Figures = append(g.Figures, ConstructKing(4,7,WHITE))
+	g.Figures = append(g.Figures, ConstructKing(4,0,BLACK))
+	g.Figures = append(g.Figures, ConstructQueen(3,7,WHITE))
+	g.Figures = append(g.Figures, ConstructQueen(3,0,BLACK))
+	g.Figures = append(g.Figures, ConstructBishop(0,7,WHITE))
+	g.Figures = append(g.Figures, ConstructBishop(7,7,WHITE))
+	g.Figures = append(g.Figures, ConstructBishop(0,0,BLACK))
+	g.Figures = append(g.Figures, ConstructBishop(7,0,BLACK))
+	g.Figures = append(g.Figures, ConstructRook(2,7,WHITE))
+	g.Figures = append(g.Figures, ConstructRook(5,7,WHITE))
+	g.Figures = append(g.Figures, ConstructRook(2,0,BLACK))
+	g.Figures = append(g.Figures, ConstructRook(5,0,BLACK))
+	g.Figures = append(g.Figures, ConstructKnight(1,7,WHITE))
+	g.Figures = append(g.Figures, ConstructKnight(6,7,WHITE))
+	g.Figures = append(g.Figures, ConstructKnight(1,0,BLACK))
+	g.Figures = append(g.Figures, ConstructKnight(6,0,BLACK))
+
+	for i:=0; i < 8;i++{
+		g.Figures = append(g.Figures, ConstructPawn(i,6,WHITE))
+		g.Figures = append(g.Figures, ConstructPawn(i,1,BLACK))
+	}
+	return g
+}
+
+func (g GameSession)InitialToJsonRepr()(GameSessionJsonRepr){
+	jsonRepr := GameSessionJsonRepr{GameOver:0, ProbSteps:make([]geometry.Point,0,0)}
+	jsonRepr.Figs = g.ToJsonRepr()
+	return jsonRepr
+}
 //function, checking if there is a figure in given position
 func (g GameSession)At(position geometry.Point)(StepMaker,bool){
 	for _,element := range g.Figures{
@@ -165,6 +217,24 @@ func (g * GameSession)CanAct(destination geometry.Point, fig StepMaker)(bool, in
 	}
 }
 
+func(g * GameSession)CheckGameOver()(bool){
+	for _,fig := range g.Figures{
+		if fig.RetColour() == g.PlayingNow{
+			for _,step := range fig.AttacksAvailable(){
+				if g.CanAct(step,fig){
+					return false
+				}
+			}
+			for _,step := range fig.ListStepsAvailable(){
+				if g.CanAct(step,fig){
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
 //Simple check if king is under attack or not
 func (g GameSession)CheckForCheck()bool{
 	var (
@@ -195,8 +265,46 @@ func (g GameSession)CheckForCheck()bool{
 	}
 }
 
-func (g GameSession)Act(clicked geometry.Point){
 
+func (g * GameSession)Act(clicked geometry.Point)GameSessionJsonRepr{
+	var repr = GameSessionJsonRepr{}
+	if g.chosenFigure != nil{
+		if can, collision := g.CanAct(clicked, g.chosenFigure);can{
+			if collision >= 0{
+				g.Figures = append(g.Figures[:collision], g.Figures[collision+1:]...)
+			}
+			g.chosenFigure.SetCoords(clicked)
+			g.chosenFigure = nil
+		}
+		if g.CheckGameOver(){
+			if g.CheckForCheck(){
+				repr.GameOver = 1 + int(g.PlayingNow)
+			}
+		}
+		g.PlayingNow = (g.PlayingNow + 1) & 1
+		if g.CheckGameOver(){
+			if g.CheckForCheck(){
+				repr.GameOver = 1 + int(g.PlayingNow)
+			}else{
+				repr.GameOver = 3
+			}
+		}else{
+			repr.GameOver = 0
+		}
+	}else if fig,ok := g.At(clicked);ok{
+		g.chosenFigure = fig
+		repr.GameOver = 0
+		tmpProbSteps := fig.ListStepsAvailable()
+		tmpProbSteps = append(repr.ProbSteps,fig.AttacksAvailable()...)
+		repr.ProbSteps = make([]geometry.Point,0,32)
+		for _,element := range tmpProbSteps{
+			if ok, _ :=g.CanAct(element,fig);ok{
+				repr.ProbSteps = append(repr.ProbSteps, element)
+			}
+		}
+	}
+	repr.Figs = g.ToJsonRepr()
+	return repr
 }
 
 
