@@ -52,12 +52,13 @@ var coords = {
 
 canvas.addEventListener('mouseup', function (e) {
     if (gameData.player === 1){
-        coords.x = (e.pageX - e.target.offsetLeft)/50;
-        coords.y = (e.pageY - e.target.offsetTop)/50;
+        coords.x = Math.floor((e.pageX - e.target.offsetLeft)/50);
+        coords.y = Math.floor((e.pageY - e.target.offsetTop)/50);
     }else{
-        coords.x = 7 - (e.pageX - e.target.offsetLeft)/50;
-        coords.y = 7 - (e.pageY - e.target.offsetTop)/50;
+        coords.x = 7 - Math.floor((e.pageX - e.target.offsetLeft)/50);
+        coords.y = 7 - Math.floor((e.pageY - e.target.offsetTop)/50);
     }
+    console.log(coords);
     socket.send(JSON.stringify(coords))
 });
 /*

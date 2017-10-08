@@ -30,7 +30,7 @@ func (g * GameServer)SchedGames(){
 			if first != nil && second != nil{
 				room := New(first,second, len(g.Rooms),g)
 				g.Rooms = append(g.Rooms, room)
-				room.run()
+				go room.run()
 			}
 		}
 	}
@@ -137,11 +137,14 @@ func (g * GameBalancer)splitToPairs(){
 		case conn := <- g.Incoming:
 			if g.counter % 2 == 0{
 				g.out1 <- conn
+				print("received first conn")
 			}else{
 				g.out2 <- conn
+				print("received second conn")
 			}
 
 			if g.counter + 1 < g.counter{
+				print("overflow")
 				g.counter = 0
 			}else{
 				g.counter += 1

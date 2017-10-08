@@ -2,6 +2,8 @@ package model
 
 import (
 	"chessServer/utility/geometry"
+	"fmt"
+	"log"
 )
 
 
@@ -136,6 +138,7 @@ func (g GameSession)InitialToJsonRepr()(GameSessionJsonRepr){
 func (g GameSession)At(position geometry.Point)(StepMaker,bool){
 	for _,element := range g.Figures{
 		if element.RetCoords().Equal(position) && g.PlayingNow == element.RetColour(){
+			log.Println("Clicked figure at: ",element.RetCoords(), " ", element.RetColour())
 			return element,true
 		}
 	}
@@ -169,21 +172,26 @@ func (g * GameSession)CanAct(destination geometry.Point, fig StepMaker)(bool, in
 		temporaryDeletedFig StepMaker
 		prevCoords geometry.Point
 		deleted bool = false	//	flag to measure if we eated ( deleted figure from main array
+		attackAble bool = false
 	)
 	//find out if we can step to a given position
 	step:= fig.CheckStepAvailable(destination)
+
 	//find out if we collide with an obstacle while performing step
 	collision,yes:=g.CheckStepForCollisions(destination,fig)
 	//we can attack if our destination has the same coordinates
 	//as the figure we collide, we can attack to a given destination and
 	//figure, placed at destination has different colour
-	attackAble:=fig.CheckAttackAvailable(destination) && yes &&
+	if yes{
+		attackAble = fig.CheckAttackAvailable(destination) &&
 			g.Figures[collision].isEnemy(fig) && g.Figures[collision].RetCoords().Equal(destination)
-	switch g.Figures[collision].(type) {	//	TODO Probably causes error
-	//Can't attack king
-	case *King:
-		attackAble = false
-	default:	//	to prevent compile error, we don't need t variable
+
+		switch g.Figures[collision].(type) {	//	TODO Probably causes error
+		//Can't attack king
+		case *King:
+			attackAble = false
+		default:
+		}
 	}
 
 	switch{
@@ -305,6 +313,7 @@ func (g * GameSession)Act(clicked geometry.Point)GameSessionJsonRepr{
 		}
 	}
 	repr.Figs = g.ToJsonRepr()
+	fmt.Println(repr)
 	return repr
 }
 
