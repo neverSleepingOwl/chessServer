@@ -22,17 +22,17 @@ func main(){
 				return true
 			},
 		}
-		print("run callback")
+		log.Println("run callback")
 		ws, err := upgrader.Upgrade(w,r,nil)
 		if _, ok := err.(websocket.HandshakeError); ok {
 			http.Error(w, "Not a websocket handshake", 400)
-			print("Error while receiving connection", err.Error())
+			log.Println("Error while receiving connection", err.Error())
 			return
 		} else if err != nil {
-			print("Error while receiving connection", err.Error())
+			log.Println("Error while receiving connection", err.Error())
 			return
 		}
-		print("WS OK")
+		log.Println("WS OK")
 		serv.Incoming <- ws
 	})
 	if err := http.ListenAndServe(ADDR, nil); err != nil {

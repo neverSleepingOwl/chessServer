@@ -2,7 +2,6 @@ package model
 
 import (
 	"chessServer/utility/geometry"
-	"fmt"
 	"log"
 )
 
@@ -304,7 +303,7 @@ func (g * GameSession)Act(clicked geometry.Point)GameSessionJsonRepr{
 		g.chosenFigure = fig
 		repr.GameOver = 0
 		tmpProbSteps := fig.ListStepsAvailable()
-		tmpProbSteps = append(repr.ProbSteps,fig.AttacksAvailable()...)
+		tmpProbSteps = append(tmpProbSteps,fig.AttacksAvailable()...)
 		repr.ProbSteps = make([]geometry.Point,0,32)
 		for _,element := range tmpProbSteps{
 			if ok, _ :=g.CanAct(element,fig);ok{
@@ -313,8 +312,6 @@ func (g * GameSession)Act(clicked geometry.Point)GameSessionJsonRepr{
 		}
 	}
 	repr.Figs = g.ToJsonRepr()
-	fmt.Println(repr)
+	log.Println(repr)
 	return repr
 }
-
-

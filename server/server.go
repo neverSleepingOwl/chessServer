@@ -6,6 +6,7 @@ import(
 	"encoding/json"
 	"chessServer/utility/geometry"
 	"runtime"
+	"log"
 )
 
 
@@ -24,9 +25,9 @@ func (g * GameServer)SchedGames(){
 	go g.GameBalancer.splitToPairs()
 	for{
 		if runtime.NumGoroutine() < 1000{
-			print("scheduling available")
+			log.Println("scheduling available")
 			first,second := <-g.out1, <- g.out2
-			print("received both messages")
+			log.Println("received both messages")
 			if first != nil && second != nil{
 				room := New(first,second, len(g.Rooms),g)
 				g.Rooms = append(g.Rooms, room)
@@ -68,7 +69,7 @@ func(g * GameRoom) listen(conn * websocket.Conn){
 	for{
 		_, data, err := conn.ReadMessage()
 		if err != nil{
-			print("Error, server.go line 69")
+			log.Println("Error, server.go line 69")
 			break
 		}
 		g.msg <- message{conn, data}
@@ -87,7 +88,7 @@ func (g * GameRoom)SendState(msg model.GameSessionJsonRepr){
 		msgToSend,_:=json.Marshal(&tmp_msg)
 		err := key.WriteMessage(websocket.TextMessage,msgToSend)
 		if err != nil{
-			print("error server.go line:88")
+			log.Println("error server.go line:88")
 			g.leave <- key
 			key.Close()
 		}
@@ -108,13 +109,13 @@ func (g * GameRoom)run(){
 						output := g.session.Act(clicked)
 						g.SendState(output)
 					}else{
-						print("Error, server.go line:109")
+						log.Println("Error, server.go line:109")
 					}
 				}
 			case left := <- g.leave:	//	if player leaves
 				g.SendState(model.GameSessionJsonRepr{GameOver: 1 + (^g.Conns[left])})	//over player wins
 				for key := range g.Conns{	//	close all connections
-					print("close connection")
+					log.Println("close connection")
 					key.Close()
 				}
 				g.server.Rooms = append(g.server.Rooms[:g.index], g.server.Rooms[g.index+1:]...)	//	remove session and game room
@@ -137,14 +138,14 @@ func (g * GameBalancer)splitToPairs(){
 		case conn := <- g.Incoming:
 			if g.counter % 2 == 0{
 				g.out1 <- conn
-				print("received first conn")
+				log.Println("received first conn")
 			}else{
 				g.out2 <- conn
-				print("received second conn")
+				log.Println("received second conn")
 			}
 
 			if g.counter + 1 < g.counter{
-				print("overflow")
+				log.Println("overflow")
 				g.counter = 0
 			}else{
 				g.counter += 1
