@@ -120,3 +120,8 @@ func (p Pawn)CheckForCollision(destination,obstacle geometry.Point)(bool){
 	way:=geometry.ConstructLine(p.Point, destination)
 	return way.Intersect(obstacle)
 }
+
+func (p * Pawn)Step(point geometry.Point){
+	p.Figure.Step(point)
+	p.didStep = true
+}

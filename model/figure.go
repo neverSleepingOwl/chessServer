@@ -36,3 +36,7 @@ func (f Figure)RetCoords()geometry.Point{	//	return figure's coordinates
 func (f *Figure)SetCoords(p geometry.Point){
 	f.Point = p
 }
+
+func (f * Figure)Step(p geometry.Point){
+	f.Point = p
+}
