@@ -176,12 +176,24 @@ func (g * GameSession)CanAct(destination geometry.Point, fig StepMaker)(bool, in
 		temporaryDeletedFig StepMaker
 		prevCoords geometry.Point
 		deleted bool = false	//	flag to measure if we eated ( deleted figure from main array
+		output bool = true
+		num = -1
 	)
 	if g.CanStepWithNoCollisions(destination,fig){
-
-	}else{
-
+		prevCoords = g.StepVirtually(destination,fig)
+	}else if attacked,can := g.CanAttack(destination, fig);can{
+		deleted = true
+		prevCoords,temporaryDeletedFig = g.AttackVirtually(destination, fig, attacked)
 	}
+	if g.CheckForCheckColour(fig.RetColour()){
+		output = false
+	}
+	if deleted{
+		num = len(g.Figures)
+		g.Figures = append(g.Figures, temporaryDeletedFig)
+	}
+	temporaryDeletedFig.SetCoords(prevCoords)
+	return output, num
 }
 
 //Check if we can perform step without collisions
@@ -228,7 +240,7 @@ func (g * GameSession)AttackVirtually(destination geometry.Point, fig StepMaker,
 	prevCoord  = fig.RetCoords()
 	deleted = g.Figures[attacked]
 	fig.SetCoords(destination)
-	g.Figures = append(g.Figures[:attacked], g.Figures[attacked+1]...)
+	g.Figures = append(g.Figures[:attacked], g.Figures[:attacked+1]...)
 	return
 }
 
@@ -253,15 +265,25 @@ func(g * GameSession)CheckGameOver()(bool){
 //Simple check if kings is under attack or not
 func (g GameSession)CheckForCheck()int{
 	for i,king := range g.kings{
-		for _,fig := range g.Figures{
-			if _,check :=g.CanAttack(king.Point,fig);check{
-				return i
-			}
+		if g.CheckKing(king){
+			return i
 		}
 	}
 	return 0
 }
 
+func (g GameSession)CheckForCheckColour(c Colour)bool{
+	return g.CheckKing(g.kings[c])
+}
+
+func (g GameSession)CheckKing(king * King)bool{
+	for _,fig := range g.Figures{
+		if _,check :=g.CanAttack(king.Point,fig);check{
+			return true
+		}
+	}
+	return false
+}
 
 func (g * GameSession)Act(clicked geometry.Point)GameSessionJsonRepr{
 	var repr = GameSessionJsonRepr{}
@@ -270,24 +292,12 @@ func (g * GameSession)Act(clicked geometry.Point)GameSessionJsonRepr{
 			if collision >= 0{
 				g.Figures = append(g.Figures[:collision], g.Figures[collision+1:]...)
 			}
-			g.chosenFigure.SetCoords(clicked)
+			g.chosenFigure.Step(clicked)
 			g.chosenFigure = nil
 		}
-		if g.CheckGameOver(){
-			if g.CheckForCheck(){
-				repr.GameOver = 1 + int(g.PlayingNow)
-			}
-		}
+
 		g.PlayingNow = (g.PlayingNow + 1) & 1
-		if g.CheckGameOver(){
-			if g.CheckForCheck(){
-				repr.GameOver = 1 + int(g.PlayingNow)
-			}else{
-				repr.GameOver = 3
-			}
-		}else{
-			repr.GameOver = 0
-		}
+
 	}else if fig,ok := g.At(clicked);ok{
 		g.chosenFigure = fig
 		repr.GameOver = 0
