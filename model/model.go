@@ -87,7 +87,7 @@ func (g GameSession)ToJsonRepr()[]FigJsonRepr{
 		figType := ""
 		switch element.(type) {
 		case *King:
-			figType = "kings"
+			figType = "king"
 		case *Queen:
 			figType = "queen"
 		case *Rook:
@@ -152,14 +152,17 @@ func (g GameSession)At(position geometry.Point)(StepMaker,bool){
 
 // Check if figure collides with other figure while making step
 //return index of collided figure if collision happens
-func (g GameSession)CheckStepForCollisions(destination geometry.Point, fig StepMaker)(collidedIndex  int, collide bool){
+func (g GameSession) FindAllCollisions(destination geometry.Point, fig StepMaker)([]int){
+	buffer := make([]int,0,16)
+
 	for i,element := range g.Figures{
-		if element.RetCoords().Equal(fig.RetCoords()){	//	ignore collision with self
+		if element.RetCoords().Equal(fig.RetCoords()){
+			//	ignore collision with self
 		}else if fig.CheckForCollision(destination,element.RetCoords()){
-			return i,true
+			buffer = append(buffer, i)
 		}
 	}
-	return -1,false
+	return buffer
 }
 
 
@@ -183,7 +186,11 @@ func (g * GameSession)CanAct(destination geometry.Point, fig StepMaker)(bool, in
 		prevCoords = g.StepVirtually(destination,fig)
 	}else if attacked,can := g.CanAttack(destination, fig);can{
 		deleted = true
-		prevCoords,temporaryDeletedFig = g.AttackVirtually(destination, fig, attacked)
+		prevCoords  = g.StepVirtually(destination,fig)
+		temporaryDeletedFig = g.Figures[attacked]
+		g.Figures = append(g.Figures[:attacked], g.Figures[:attacked+1]...)
+	}else{
+		return false, -1
 	}
 	if g.CheckForCheckColour(fig.RetColour()){
 		output = false
@@ -192,14 +199,14 @@ func (g * GameSession)CanAct(destination geometry.Point, fig StepMaker)(bool, in
 		num = len(g.Figures)
 		g.Figures = append(g.Figures, temporaryDeletedFig)
 	}
-	temporaryDeletedFig.SetCoords(prevCoords)
+	fig.SetCoords(prevCoords)
 	return output, num
 }
 
 //Check if we can perform step without collisions
 func (g * GameSession)CanStepWithNoCollisions(destination geometry.Point, fig StepMaker)bool{
 	if fig.CheckStepAvailable(destination){
-		if _,collided := g.CheckStepForCollisions(destination,fig);!collided {
+		if collided := g.FindAllCollisions(destination,fig);len(collided) == 0 {
 			return true
 		}
 	}
@@ -208,17 +215,19 @@ func (g * GameSession)CanStepWithNoCollisions(destination geometry.Point, fig St
 
 ///Check if we can attack without collisions
 func (g * GameSession)CanAttack(destination geometry.Point, fig StepMaker)(int,bool){
-	collisionFig, collided := g.CheckStepForCollisions(destination,fig)
+	collisionFigs := g.FindAllCollisions(destination,fig)
 	var canAttack bool = false
-	if collided{
+	collision := -1
+	if len(collisionFigs) == 1{
 		//we can attack only enemies
-		canAttack = g.Figures[collisionFig].isEnemy(fig)
+		canAttack = g.Figures[collisionFigs[0]].isEnemy(fig)
 		//we can't attack figures if collision is before destination
-		canAttack = canAttack && g.Figures[collisionFig].RetCoords().Equal(destination)
+		canAttack = canAttack && g.Figures[collisionFigs[0]].RetCoords().Equal(destination)
 		//we can't attack king
-		canAttack = canAttack && !g.isKing(g.Figures[collisionFig])
+		canAttack = canAttack && !g.isKing(g.Figures[collisionFigs[0]])
+		collision = collisionFigs[0]
 	}
-	return collisionFig,canAttack
+	return collision,canAttack
 }
 
 func (g * GameSession)isKing(fig StepMaker)bool{
@@ -236,13 +245,6 @@ func (g * GameSession)StepVirtually(destination geometry.Point, fig StepMaker)(p
 	return
 }
 
-func (g * GameSession)AttackVirtually(destination geometry.Point, fig StepMaker, attacked int)(prevCoord geometry.Point, deleted StepMaker){
-	prevCoord  = fig.RetCoords()
-	deleted = g.Figures[attacked]
-	fig.SetCoords(destination)
-	g.Figures = append(g.Figures[:attacked], g.Figures[:attacked+1]...)
-	return
-}
 
 func(g * GameSession)CheckGameOver()(bool){
 	for _,fig := range g.Figures{
@@ -293,11 +295,9 @@ func (g * GameSession)Act(clicked geometry.Point)GameSessionJsonRepr{
 				g.Figures = append(g.Figures[:collision], g.Figures[collision+1:]...)
 			}
 			g.chosenFigure.Step(clicked)
-			g.chosenFigure = nil
+			g.PlayingNow = (g.PlayingNow + 1) & 1
 		}
-
-		g.PlayingNow = (g.PlayingNow + 1) & 1
-
+		g.chosenFigure = nil
 	}else if fig,ok := g.At(clicked);ok{
 		g.chosenFigure = fig
 		repr.GameOver = 0

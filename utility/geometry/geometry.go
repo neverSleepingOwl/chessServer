@@ -1,6 +1,9 @@
 package geometry
 
-import "math"
+import (
+	"math"
+	"log"
+)
 
 //package containing utility functions
 type Point struct{
@@ -17,7 +20,7 @@ func (p Point) CheckFieldBoundaries() bool{
 }
 
 func (p Point)Equal(compared Point)bool{
-	return p.X == compared.X &&p.Y == compared.Y
+	return p.X == compared.X && p.Y == compared.Y
 }
 
 func (p Point)Add(value Point)(Point){
@@ -62,6 +65,8 @@ func (l Line) Intersect(point Point)bool{
 			if sameSign(l.end.Y- l.begin.Y,point.Y-l.begin.Y) && l.abs() >= vec.abs(){
 				return true
 			}else{
+				log.Println("Line: ", l)
+				log.Println("Point: ", point)
 				return false
 			}
 		}else{
@@ -71,7 +76,7 @@ func (l Line) Intersect(point Point)bool{
 		vec:=Line{l.begin, point}
 		wayTan,_:=l.tan()
 		wayToObstacleTan,_:=vec.tan()
-		return l.abs() > vec.abs() && wayTan == wayToObstacleTan
+		return l.abs() >= vec.abs() && wayTan == wayToObstacleTan
 	}
 }
 

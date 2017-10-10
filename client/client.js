@@ -3,7 +3,8 @@ var context = canvas.getContext("2d");
 
 var figImages = {'king':'', 'queen':'','rook':'','knight':'','bishop':'','pawn':''};
 var  images = {'bg':'','vic1':'','vic2':'','draw':''};
-
+var probStep = document.createElement("img");
+probStep.src = 'resources/prob.png';
 var gameData = {
     player:1
 };
@@ -19,6 +20,7 @@ for (var figKey in figImages){
         figImages[figKey][i].src = 'resources/'+ figKey + i + '.png';
     }
 }
+
 
 
 var socket = new WebSocket("ws://localhost:8080/ws");    //  init websocket connection
@@ -80,6 +82,15 @@ function repaint(gameData){
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.drawImage(images['bg'],0,0,canvas.width, canvas.height);
     if (gameData.game_over === 0){
+        if (gameData.list_steps !== null){
+            for (var j = 0; j < gameData.list_steps.length;j++){
+                if(gameData.player === 1){
+                    context.drawImage(probStep,gameData.list_steps[j].x * 50, gameData.list_steps[j].y * 50, 50, 50);
+                }else{
+                    context.drawImage(probStep,(7 - gameData.list_steps[j].x) * 50, (7-gameData.list_steps[j].y) * 50, 50, 50);
+                }
+            }
+        }
         for (var i = 0; i < gameData.figs.length;i++){
             if(gameData.player === 1){
                 context.drawImage(figImages[gameData.figs[i].name][gameData.figs[i].colour],
