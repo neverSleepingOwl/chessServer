@@ -2,7 +2,7 @@ package model
 
 import (
 	"chessServer/utility/geometry"
-	"log"
+	"chessServer/utility/logger"
 )
 
 
@@ -142,7 +142,7 @@ func (g GameSession)InitialToJsonRepr()(GameSessionJsonRepr){
 func (g GameSession)At(position geometry.Point)(StepMaker,bool){
 	for _,element := range g.Figures{
 		if element.RetCoords().Equal(position) && g.PlayingNow == element.RetColour(){
-			log.Println("Clicked figure at: ",element.RetCoords(), " ", element.RetColour())
+			logger.WriteLog(4,"Clicked figure at: ",element.RetCoords(), " ", element.RetColour())
 			return element,true
 		}
 	}
@@ -184,17 +184,18 @@ func (g * GameSession)CanAct(destination geometry.Point, fig StepMaker)(bool, in
 	)
 	if g.CanStepWithNoCollisions(destination,fig){
 		prevCoords = g.StepVirtually(destination,fig)
-	}else if attacked,can := g.CanAttack(destination, fig);can{
+	}else{
+		return false, -1
+	}/*else if attacked,can := g.CanAttack(destination, fig);can{
 		deleted = true
 		prevCoords  = g.StepVirtually(destination,fig)
 		temporaryDeletedFig = g.Figures[attacked]
 		g.Figures = append(g.Figures[:attacked], g.Figures[:attacked+1]...)
-	}else{
-		return false, -1
-	}
-	if g.CheckForCheckColour(fig.RetColour()){
+	}*/
+
+	/*if g.CheckForCheckColour(fig.RetColour()){
 		output = false
-	}
+	}*/
 	if deleted{
 		num = len(g.Figures)
 		g.Figures = append(g.Figures, temporaryDeletedFig)
@@ -311,6 +312,6 @@ func (g * GameSession)Act(clicked geometry.Point)GameSessionJsonRepr{
 		}
 	}
 	repr.Figs = g.ToJsonRepr()
-	log.Println(repr)
+	logger.WriteLog(4,"Will be sent to server: ",repr)
 	return repr
 }

@@ -2,7 +2,6 @@ package geometry
 
 import(
 	"testing"
-	"fmt"
 )
 
 func TestPoint_CheckFieldBoundaries(t *testing.T) {
@@ -22,7 +21,7 @@ func TestPoint_CheckFieldBoundaries(t *testing.T) {
 		}
 }
 
-func TestPoint_Add(t *testing.T) {
+/*func TestPoint_Add(t *testing.T) {
 	a,b:=make([]Point,1000000), make([]Point,1000000)
 	for i:=0;i<1000;i++{
 		for j:=0;j<1000;j++{
@@ -35,10 +34,14 @@ func TestPoint_Add(t *testing.T) {
 			t.Error("Failed summ", a[i])
 		}
 	}
-}
+}*/
 
 func TestLine_Intersect(t *testing.T) {
-
+	l := Line{Point{7,7},Point{0,0}}
+	p := Point{2,3}
+	if l.Intersect(p){
+		t.Error("Incorrect intersect")
+	}
 }
 
 func TestPoint_Equal(t *testing.T) {

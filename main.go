@@ -5,13 +5,25 @@ import (
 	"github.com/gorilla/websocket"
 	"chessServer/server"
 	"log"
-	"runtime/debug"
+	//"runtime/debug"
+	"os"
 )
 
 const ADDR = ":8080"
 
+func init(){
+	f, err := os.OpenFile("testlogfile", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if err != nil {
+		println("Error, can't open file: ", err.Error())
+		os.Exit(1)
+	}
+	defer f.Close()
+
+	log.SetOutput(f)
+}
+
 func main(){
-	debug.SetGCPercent(-1)
+	//debug.SetGCPercent(-1)
 	serv := server.NewServer()
 	go serv.SchedGames()
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request){

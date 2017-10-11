@@ -2,7 +2,7 @@ package geometry
 
 import (
 	"math"
-	"log"
+	"chessServer/utility/logger"
 )
 
 //package containing utility functions
@@ -63,20 +63,29 @@ func (l Line) Intersect(point Point)bool{
 		if l.end.X == point.X {
 			vec:=Line{l.begin, point}
 			if sameSign(l.end.Y- l.begin.Y,point.Y-l.begin.Y) && l.abs() >= vec.abs(){
+				logger.WriteLog(6,"From line 67:Intersects: ", "Line: ", l, " Point: ",point)
 				return true
 			}else{
-				log.Println("Line: ", l)
-				log.Println("Point: ", point)
+				logger.WriteLog(6,"From line 69:Doesn't intersect: ", "Line: ", l, " Point: ",point)
 				return false
 			}
 		}else{
+			logger.WriteLog(6,"From line 73: Doesn't intersect: ", "Line: ", l, " Point: ",point)
 			return false
 		}
 	}else{
 		vec:=Line{l.begin, point}
 		wayTan,_:=l.tan()
 		wayToObstacleTan,_:=vec.tan()
-		return l.abs() >= vec.abs() && wayTan == wayToObstacleTan
+		output := l.abs() >= vec.abs() && wayTan == wayToObstacleTan
+		output =output && sameSign(l.end.X- l.begin.X,point.X-l.begin.X)
+		output = output && sameSign(l.end.Y- l.begin.Y,point.Y-l.begin.Y)
+		if output{
+			logger.WriteLog(6,"From line 84:Intersects: ", "Line: ", l, " Point: ",point)
+		}else{
+			logger.WriteLog(6,"From line 86: Doesn't intersect: ", "Line: ", l, " Point: ",point)
+		}
+		return output
 	}
 }
 
