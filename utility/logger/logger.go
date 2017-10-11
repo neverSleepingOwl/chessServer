@@ -21,8 +21,11 @@ var levels  = map[int]string{
 func WriteLog(lvl int,v ...interface{}){
 		if lvl <= level{
 			log.Println("----------",levels[lvl],"----------")
-			log.Println(v)
+			log.Println(v...)
 			log.Println("----------",levels[lvl],"----------")
+		}else{
+			log.Println("ERROR INCORRECT LOGGING")
+			print("INCORRECT LOGGING")
 		}
 }
 

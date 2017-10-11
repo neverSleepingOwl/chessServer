@@ -163,6 +163,7 @@ func (g GameSession) FindAllCollisions(destination geometry.Point, fig StepMaker
 		}
 	}
 	logger.WriteLog(4,"Found collisions at: ", buffer, " Destination: ", destination)
+	logger.WriteLog(4,"Figures: ", g.ToJsonRepr())
 	return buffer
 }
 
