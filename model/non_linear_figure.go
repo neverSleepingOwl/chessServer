@@ -1,6 +1,9 @@
 package model
 
-import "chessServer/utility/geometry"
+import (
+	"chessServer/utility/geometry"
+	"chessServer/utility/logger"
+)
 
 // NonlinearFigure represents figures that can go and attack to the same cells:Kings and Knights, relative to it's coordinates,
 // they can both attack and step to the same fields.
@@ -23,6 +26,8 @@ func (n NonLinearFigure)ListStepsAvailable()(Buffer []geometry.Point){
 			Buffer=append(Buffer,n.Point.Add(element))	//	add correct coordinate to list
 		}
 	}
+
+	logger.WriteLog(5, "From line 30: ", "Nonlinear figure available steps: ", Buffer)
 	return Buffer
 }
 

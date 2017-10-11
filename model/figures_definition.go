@@ -1,6 +1,9 @@
 package model
 
-import "chessServer/utility/geometry"
+import (
+	"chessServer/utility/geometry"
+	"chessServer/utility/logger"
+)
 
 // list of child classes representing figures, classes named as figures in english so
 //I've added some russian cursive comments so i'll understand myself
@@ -103,6 +106,8 @@ func(p Pawn)ListStepsAvailable()(Buffer []geometry.Point){
 	if element:=PawnProbableLongStepList[p.Colour_];!p.didStep && element.Add(p.Point).CheckFieldBoundaries(){
 		Buffer = append(Buffer, element.Add(p.Point))
 	}
+
+	logger.WriteLog(5, "From line 110: ", "Pawn step list: ", Buffer)
 	return Buffer
 }
 
@@ -113,10 +118,13 @@ func (p Pawn) AttacksAvailable()(Buffer []geometry.Point){
 			Buffer = append(Buffer, element.Add(p.Point))
 		}
 	}
+
+	logger.WriteLog(5, "From line 120: ", "Pawn attack list: ", Buffer)
 	return Buffer
 }
 
 func (p Pawn)CheckForCollision(destination,obstacle geometry.Point)(bool){
+	logger.WriteLog(5, "From line 123: ", "Pawn collision check Destination: ", destination, "Obstacle: ", obstacle)
 	way:=geometry.ConstructLine(p.Point, destination)
 	return way.Intersect(obstacle)
 }

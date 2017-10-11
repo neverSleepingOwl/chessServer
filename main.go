@@ -5,7 +5,6 @@ import (
 	"github.com/gorilla/websocket"
 	"chessServer/server"
 	"log"
-	//"runtime/debug"
 	"os"
 )
 
@@ -23,7 +22,6 @@ func init(){
 }
 
 func main(){
-	//debug.SetGCPercent(-1)
 	serv := server.NewServer()
 	go serv.SchedGames()
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request){

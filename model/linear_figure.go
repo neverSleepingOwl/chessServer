@@ -1,6 +1,9 @@
 package model
 
-import "chessServer/utility/geometry"
+import (
+	"chessServer/utility/geometry"
+	"chessServer/utility/logger"
+)
 
 // Parent class, representing behavior of linear figures:Rooks, Bishops and Queens
 // Linear figures have list of directions vectors and just check if destination point
@@ -28,6 +31,7 @@ func (l LinearFigure)ListStepsAvailable()(Buffer []geometry.Point){
 			j = j.Subtract(element.Point)	//	subtract initial direction equals to adding opposite direction
 		}
 	}
+	logger.WriteLog(5, "From line 34: All linear figure available steps: ", Buffer)
 	return Buffer
 }
 
@@ -47,5 +51,6 @@ func (l LinearFigure)CheckAttackAvailable(point geometry.Point)(bool){	//	attack
 // Collision happens then obstacle lays on way of linear figure from initial point to destination
 func (l LinearFigure)CheckForCollision(destination, obstacle geometry.Point)(bool){
 	way:=geometry.ConstructLine(l.Point, destination) // only valid destinations are checked for collision
+	logger.WriteLog(5, "Linear figure collision check. From line 54: ", "Destination: ", destination, "Obstacle: ", obstacle)
 	return way.Intersect(obstacle)                      // so we can skip checking for validity
 }
