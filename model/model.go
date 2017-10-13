@@ -230,8 +230,9 @@ func (g * GameSession)CanAttack(destination geometry.Point, fig StepMaker)(int,b
 	var canAttack bool = false
 	collision := -1
 	if len(collisionFigs) == 1{
+		canAttack = fig.CheckAttackAvailable(destination)
 		//we can attack only enemies
-		canAttack = g.Figures[collisionFigs[0]].isEnemy(fig)
+		canAttack = canAttack && g.Figures[collisionFigs[0]].isEnemy(fig)
 		//we can't attack figures if collision is before destination
 		canAttack = canAttack && g.Figures[collisionFigs[0]].RetCoords().Equal(destination)
 		collision = collisionFigs[0]
