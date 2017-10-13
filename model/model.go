@@ -187,13 +187,16 @@ func (g * GameSession)CanAct(destination geometry.Point, fig StepMaker)(bool, in
 	if g.CanStepWithNoCollisions(destination,fig){
 		prevCoords = g.StepVirtually(destination,fig)
 	}else if attacked,can := g.CanAttack(destination, fig);can{
-		deleted = true
-		prevCoords  = g.StepVirtually(destination,fig)
-		temporaryDeletedFig = g.Figures[attacked]
-		log.Println(4,"deleted figure: ",temporaryDeletedFig)
-		log.Println(g.ToJsonRepr())
-		g.Figures = append(g.Figures[:attacked], g.Figures[attacked+1:]...)
-		log.Println(g.ToJsonRepr())
+		//we can't attack king
+		if !g.isKing(g.Figures[attacked]){
+			deleted = true
+			prevCoords  = g.StepVirtually(destination,fig)
+			temporaryDeletedFig = g.Figures[attacked]
+			log.Println(4,"deleted figure: ",temporaryDeletedFig)
+			log.Println(g.ToJsonRepr())
+			g.Figures = append(g.Figures[:attacked], g.Figures[attacked+1:]...)
+			log.Println(g.ToJsonRepr())
+		}
 	}else{
 		return false, -1
 	}
@@ -231,8 +234,6 @@ func (g * GameSession)CanAttack(destination geometry.Point, fig StepMaker)(int,b
 		canAttack = g.Figures[collisionFigs[0]].isEnemy(fig)
 		//we can't attack figures if collision is before destination
 		canAttack = canAttack && g.Figures[collisionFigs[0]].RetCoords().Equal(destination)
-		//we can't attack king
-		canAttack = canAttack && !g.isKing(g.Figures[collisionFigs[0]])
 		collision = collisionFigs[0]
 	}
 	return collision,canAttack
@@ -254,22 +255,35 @@ func (g * GameSession)StepVirtually(destination geometry.Point, fig StepMaker)(p
 }
 
 
-func(g * GameSession)CheckGameOver()(bool){
+func (g * GameSession)CantGo(col Colour)bool{
 	for _,fig := range g.Figures{
-		if fig.RetColour() == g.PlayingNow{
-			for _,step := range fig.AttacksAvailable(){
-				if ok,_ := g.CanAct(step,fig);ok{
+		if fig.RetColour() == col{
+			for _,step := range fig.ListStepsAvailable(){
+				if can,_ := g.CanAct(step, fig);can{
 					return false
 				}
 			}
-			for _,step := range fig.ListStepsAvailable(){
-				if ok,_ := g.CanAct(step,fig);ok{
+			for _,attack := range fig.AttacksAvailable(){
+				if can,_ := g.CanAct(attack, fig);can{
 					return false
 				}
 			}
 		}
 	}
 	return true
+}
+
+func(g * GameSession)CheckGameOver()(int){
+	black, white := g.CantGo(BLACK), g.CantGo(WHITE)
+	if black && white{
+		return 3
+	}else if black && g.CheckForCheckColour(BLACK){
+		return 1
+	}else if white && g.CheckForCheckColour(WHITE){
+		return 2
+	}else{
+		return 0
+	}
 }
 
 //Simple check if kings is under attack or not
@@ -306,6 +320,7 @@ func (g * GameSession)Act(clicked geometry.Point)GameSessionJsonRepr{
 			g.PlayingNow = (g.PlayingNow + 1) & 1
 		}
 		g.chosenFigure = nil
+		repr.GameOver = g.CheckGameOver()
 	}else if fig,ok := g.At(clicked);ok{
 		g.chosenFigure = fig
 		repr.GameOver = 0
