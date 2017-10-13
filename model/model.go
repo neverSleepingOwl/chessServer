@@ -309,14 +309,14 @@ func (g * GameSession)Act(clicked geometry.Point)GameSessionJsonRepr{
 	}else if fig,ok := g.At(clicked);ok{
 		g.chosenFigure = fig
 		repr.GameOver = 0
-		/*tmpProbSteps := fig.ListStepsAvailable()
+		tmpProbSteps := fig.ListStepsAvailable()
 		tmpProbSteps = append(tmpProbSteps,fig.AttacksAvailable()...)
 		repr.ProbSteps = make([]geometry.Point,0,32)
 		for _,element := range tmpProbSteps{
 			if ok, _ :=g.CanAct(element,fig);ok{
 				repr.ProbSteps = append(repr.ProbSteps, element)
 			}
-		}*/
+		}
 	}
 	repr.Figs = g.ToJsonRepr()
 	logger.WriteLog(4,"Will be sent to server: ",repr)

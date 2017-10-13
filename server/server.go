@@ -122,18 +122,6 @@ func (g * GameRoom)run(){
 		}
 	}
 }
-/*
-{king 4 7 1} {king 4 0 0} {queen 6 4 1} {queen 3 0 0}
-{bishop 0 7 1} {bishop 7 7 1} {bishop 0 0 0} {bishop 7 0 0}
-{rook 2 7 1} {rook 5 7 1} {rook 2 0 0} {rook 5 0 0}
-{knight 1 7 1} {knight 6 7 1} {knight 1 0 0} {knight 6 0 0}
-{pawn 0 6 1} {pawn 0 1 0} {pawn 1 6 1} {pawn 1 2 0}
-{pawn 2 6 1} {pawn 2 1 0} {pawn 3 6 1} {pawn 3 1 0}
-{pawn 4 4 1} {pawn 4 2 0}
-{pawn 5 6 1} {pawn 5 1 0}
-{pawn 6 6 1} {pawn 6 1 0} {pawn 7 6 1} {pawn 7 1 0}]
- */
-
 
 type GameBalancer struct{
 	Incoming chan *websocket.Conn

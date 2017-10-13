@@ -2,7 +2,7 @@ package logger
 
 import "log"
 
-const level int = 4 // max level of logging
+const level int = 3 // max level of logging
 //0 - for basic logging (main)
 //1 - for server main parts
 //2 and 3 for server classes
