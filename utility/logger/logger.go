@@ -2,7 +2,7 @@ package logger
 
 import "log"
 
-const level int = 6 // max level of logging
+const level int = 4 // max level of logging
 //0 - for basic logging (main)
 //1 - for server main parts
 //2 and 3 for server classes
@@ -23,9 +23,6 @@ func WriteLog(lvl int,v ...interface{}){
 			log.Println("----------",levels[lvl],"----------")
 			log.Println(v...)
 			log.Println("----------",levels[lvl],"----------")
-		}else{
-			log.Println("ERROR INCORRECT LOGGING")
-			print("INCORRECT LOGGING")
 		}
 }
 

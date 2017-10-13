@@ -3,6 +3,7 @@ package model
 import (
 	"chessServer/utility/geometry"
 	"chessServer/utility/logger"
+	"log"
 )
 
 
@@ -167,7 +168,6 @@ func (g GameSession) FindAllCollisions(destination geometry.Point, fig StepMaker
 	return buffer
 }
 
-
 // Recognises, whereas we can perform the attack/step to a given position
 // performs standart step/attack action with collision check, removes attacked figure
 // in case of attack, but saves it to a temporary variable
@@ -186,21 +186,26 @@ func (g * GameSession)CanAct(destination geometry.Point, fig StepMaker)(bool, in
 	)
 	if g.CanStepWithNoCollisions(destination,fig){
 		prevCoords = g.StepVirtually(destination,fig)
-	}else{
-		return false, -1
-	}/*else if attacked,can := g.CanAttack(destination, fig);can{
+	}else if attacked,can := g.CanAttack(destination, fig);can{
 		deleted = true
 		prevCoords  = g.StepVirtually(destination,fig)
 		temporaryDeletedFig = g.Figures[attacked]
-		g.Figures = append(g.Figures[:attacked], g.Figures[:attacked+1]...)
-	}*/
+		log.Println(4,"deleted figure: ",temporaryDeletedFig)
+		log.Println(g.ToJsonRepr())
+		g.Figures = append(g.Figures[:attacked], g.Figures[attacked+1:]...)
+		log.Println(g.ToJsonRepr())
+	}else{
+		return false, -1
+	}
 
 	/*if g.CheckForCheckColour(fig.RetColour()){
 		output = false
 	}*/
 	if deleted{
 		num = len(g.Figures)
+		log.Println(4,"Deleted number: ", num)
 		g.Figures = append(g.Figures, temporaryDeletedFig)
+		log.Println(4,"Returned figure: ", g.Figures[num])
 	}
 	fig.SetCoords(prevCoords)
 	return output, num
@@ -304,14 +309,14 @@ func (g * GameSession)Act(clicked geometry.Point)GameSessionJsonRepr{
 	}else if fig,ok := g.At(clicked);ok{
 		g.chosenFigure = fig
 		repr.GameOver = 0
-		tmpProbSteps := fig.ListStepsAvailable()
+		/*tmpProbSteps := fig.ListStepsAvailable()
 		tmpProbSteps = append(tmpProbSteps,fig.AttacksAvailable()...)
 		repr.ProbSteps = make([]geometry.Point,0,32)
 		for _,element := range tmpProbSteps{
 			if ok, _ :=g.CanAct(element,fig);ok{
 				repr.ProbSteps = append(repr.ProbSteps, element)
 			}
-		}
+		}*/
 	}
 	repr.Figs = g.ToJsonRepr()
 	logger.WriteLog(4,"Will be sent to server: ",repr)

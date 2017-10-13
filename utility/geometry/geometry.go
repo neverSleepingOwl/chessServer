@@ -58,6 +58,7 @@ func (l Line)tan()(float64, bool){
 	}
 }
 
+//5 5    1 5     5 1
 func (l Line) Intersect(point Point)bool{
 	if l.end.X == l.begin.X {
 		if l.end.X == point.X {
@@ -76,10 +77,13 @@ func (l Line) Intersect(point Point)bool{
 	}else{
 		vec:=Line{l.begin, point}
 		wayTan,_:=l.tan()
-		wayToObstacleTan,_:=vec.tan()
+		wayToObstacleTan,ok:=vec.tan()
+		if !ok{
+			return false
+		}
 		output := l.abs() >= vec.abs() && wayTan == wayToObstacleTan
-		output =output && sameSign(l.end.X- l.begin.X,point.X-l.begin.X)
-		output = output && sameSign(l.end.Y- l.begin.Y,point.Y-l.begin.Y)
+		output =output && sameSign(l.end.X- l.begin.X,vec.end.X - vec.begin.X)
+		output = output && sameSign(l.end.Y- l.begin.Y,vec.end.Y - vec.begin.Y)
 		if output{
 			logger.WriteLog(6,"From line 84:Intersects: ", "Line: ", l, " Point: ",point)
 		}else{
