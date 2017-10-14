@@ -201,9 +201,9 @@ func (g * GameSession)CanAct(destination geometry.Point, fig StepMaker)(bool, in
 		return false, -1
 	}
 
-	/*if g.CheckForCheckColour(fig.RetColour()){
+	if g.CheckForCheckColour(fig.RetColour()){
 		output = false
-	}*/
+	}
 	if deleted{
 		num = len(g.Figures)
 		log.Println(4,"Deleted number: ", num)
@@ -276,12 +276,12 @@ func (g * GameSession)CantGo(col Colour)bool{
 
 func(g * GameSession)CheckGameOver()(int){
 	black, white := g.CantGo(BLACK), g.CantGo(WHITE)
-	if black && white{
-		return 3
-	}else if black && g.CheckForCheckColour(BLACK){
+	if black && g.CheckForCheckColour(BLACK){
 		return 1
 	}else if white && g.CheckForCheckColour(WHITE){
 		return 2
+	}else if (g.PlayingNow == BLACK  && black) || (g.PlayingNow == WHITE  && white){
+		return 3
 	}else{
 		return 0
 	}
