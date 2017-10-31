@@ -1,6 +1,6 @@
 package model
 
-import "chessServer/utility/geometry"
+import "github.com/chessServer/utility/geometry"
 
 type Figure struct{	//	parent class for all figures(all figures inherits Figure and implement StepMaker)
 	geometry.Point	//	figure coordinates

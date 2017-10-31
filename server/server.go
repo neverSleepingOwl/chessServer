@@ -2,9 +2,9 @@ package server
 
 import(
 	"github.com/gorilla/websocket"
-	"chessServer/model"
+	"github.com/chessServer/model"
 	"encoding/json"
-	"chessServer/utility/geometry"
+	"github.com/chessServer/utility/geometry"
 	"runtime"
 	"log"
 )

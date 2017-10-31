@@ -1,8 +1,8 @@
 package model
 
 import (
-	"chessServer/utility/geometry"
-	"chessServer/utility/logger"
+	"github.com/chessServer/utility/geometry"
+	"github.com/chessServer/utility/logger"
 )
 
 // list of child classes representing figures, classes named as figures in english so

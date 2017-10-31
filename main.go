@@ -3,10 +3,10 @@ package main
 import (
 	"net/http"
 	"github.com/gorilla/websocket"
-	"chessServer/server"
+	"github.com/chessServer/server"
 	"log"
 	"os"
-	"chessServer/utility/logger"
+	"github.com/chessServer/utility/logger"
 )
 
 const ADDR = ":8080"

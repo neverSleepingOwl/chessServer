@@ -1,8 +1,8 @@
 package model
 
 import (
-	"chessServer/utility/geometry"
-	"chessServer/utility/logger"
+	"github.com/chessServer/utility/geometry"
+	"github.com/chessServer/utility/logger"
 )
 
 // NonlinearFigure represents figures that can go and attack to the same cells:Kings and Knights, relative to it's coordinates,

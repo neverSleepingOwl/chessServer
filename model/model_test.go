@@ -3,7 +3,7 @@ package model
 import (
 	"testing"
 	"fmt"
-	"chessServer/utility/geometry"
+	"github.com/chessServer/utility/geometry"
 )
 
 

@@ -2,7 +2,7 @@ package geometry
 
 import (
 	"math"
-	"chessServer/utility/logger"
+	"github.com/chessServer/utility/logger"
 )
 
 //package containing utility functions
