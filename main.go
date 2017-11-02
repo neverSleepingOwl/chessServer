@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"github.com/chessServer/utility/logger"
+	"fmt"
 )
 
 const ADDR = ":8080"
@@ -23,6 +24,7 @@ func init(){
 }
 
 func main(){
+	fmt.Print("DAEMON STARTED")
 	serv := server.NewServer()
 	go serv.SchedGames()
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request){

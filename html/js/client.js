@@ -4,26 +4,31 @@ var context = canvas.getContext("2d");
 var figImages = {'king':'', 'queen':'','rook':'','knight':'','bishop':'','pawn':''};
 var  images = {'bg':'','vic1':'','vic2':'','draw':''};
 var probStep = document.createElement("img");
-probStep.src = 'resources/prob.png';
+probStep.src = 'images/prob.png';
+
+var preview_pic = document.createElement("img");
+preview_pic.src = 'images/game.jpg';
+
 var gameData = {
     player:1
 };
 
 for (var key in images){    //  cache images
     images[key] = document.createElement("img");
-    images[key].src = 'resources/' + key + '.png'
+    images[key].src = 'images/' + key + '.png'
 }
 
 for (var figKey in figImages){
     figImages[figKey] = [document.createElement("img"),document.createElement("img")];
     for (var i = 0; i < figImages[figKey].length; i++){
-        figImages[figKey][i].src = 'resources/'+ figKey + i + '.png';
+        figImages[figKey][i].src = 'images/'+ figKey + i + '.png';
     }
 }
 
+context.clearRect(0, 0, canvas.width, canvas.height);
+context.drawImage(preview_pic,0,0,canvas.width, canvas.height);
 
-
-var socket = new WebSocket("ws://localhost:8080/ws");    //  init websocket connection
+var socket = new WebSocket("ws://chessserver.herokuapp.com:8080/ws");    //  init websocket connection
 
 socket.onopen = function() {
     console.log("Connection established");
