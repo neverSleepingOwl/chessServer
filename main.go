@@ -25,6 +25,8 @@ func init(){
 
 func main(){
 	fmt.Print("DAEMON STARTED")
+        fs := http.FileServer(http.Dir("html"))
+        http.Handle("/", fs)
 	serv := server.NewServer()
 	go serv.SchedGames()
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request){
